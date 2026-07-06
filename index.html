@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Barako Bubble Tea & Coffee — Mumbai's boldest boba bar. Brown sugar boba, matcha, taro, fruit teas and specialty coffee across 8 outlets.">
+<title>Barako — Bubble Tea & Coffee, Mumbai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧋</text></svg>">
+</head>
+<body>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --ink:#151009;          /* warm espresso black */
+  --ink-2:#1F1710;        /* raised surface */
+  --ink-3:#2B2016;        /* card surface */
+  --cream:#F4E9D6;        /* milk foam */
+  --cream-dim:#C9B99F;    /* muted foam */
+  --caramel:#E0A458;      /* brown-sugar amber (hero accent) */
+  --caramel-deep:#9C6323;
+  --taro:#B79CE4;
+  --matcha:#9DC183;
+  --berry:#F0949F;
+  --line:rgba(244,233,214,.13);
+  --display:"Fraunces", Georgia, "Times New Roman", serif;
+  --sans:"Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rad:22px;
+  --shadow:0 24px 60px -20px rgba(0,0,0,.65);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{
+  font-family:var(--sans);
+  background:var(--ink);
+  color:var(--cream);
+  line-height:1.6;
+  overflow-x:clip;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{ /* ambient glows */
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 85% -10%, rgba(224,164,88,.14), transparent 60%),
+    radial-gradient(700px 500px at -10% 45%, rgba(183,156,228,.08), transparent 60%),
+    radial-gradient(800px 600px at 70% 110%, rgba(157,193,131,.07), transparent 60%);
+}
+::selection{background:var(--caramel);color:var(--ink)}
+img,svg{max-width:100%;display:block}
+a{color:inherit}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+h1,h2,h3{font-family:var(--display);font-weight:550;text-wrap:balance;line-height:1.08}
+.wrap{width:min(1180px,92vw);margin-inline:auto}
+.eyebrow{
+  font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--caramel);font-weight:600;display:flex;align-items:center;gap:.8rem;
+}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--caramel);display:inline-block}
+:focus-visible{outline:2px solid var(--caramel);outline-offset:3px;border-radius:4px}
+
+/* ============ FLOATING AMBIENT PEARLS ============ */
+#ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.pearl{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 32% 30%, rgba(244,233,214,.35), rgba(244,233,214,.06) 55%, transparent 70%), var(--pc, rgba(224,164,88,.16));
+  animation:drift var(--dur,26s) ease-in-out var(--del,0s) infinite alternate;
+  filter:blur(.4px);
+}
+@keyframes drift{
+  from{transform:translate(0,0) scale(1)}
+  to{transform:translate(var(--dx,40px), var(--dy,-90px)) scale(var(--ds,1.15))}
+}
+
+/* ============ NAV ============ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:60;
+  transition:background .35s, box-shadow .35s, backdrop-filter .35s;
+}
+nav.scrolled{background:rgba(21,16,9,.78);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;padding:1rem 0}
+.logo{font-family:var(--display);font-size:1.55rem;letter-spacing:.04em;text-decoration:none;display:flex;align-items:baseline;gap:.4rem}
+.logo b{font-weight:650}
+.logo span{width:9px;height:9px;border-radius:50%;background:var(--caramel);display:inline-block;transform:translateY(-1px)}
+.nav-links{display:flex;gap:2rem;list-style:none;align-items:center}
+.nav-links a{text-decoration:none;font-size:.92rem;color:var(--cream-dim);transition:color .2s}
+.nav-links a:hover{color:var(--cream)}
+.btn{
+  display:inline-flex;align-items:center;gap:.55rem;
+  background:var(--caramel);color:var(--ink);font-weight:600;
+  padding:.72rem 1.5rem;border-radius:999px;text-decoration:none;font-size:.92rem;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  box-shadow:0 8px 24px -8px rgba(224,164,88,.5);
+}
+.btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 32px -8px rgba(224,164,88,.6)}
+.btn.ghost{background:transparent;color:var(--cream);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--caramel);color:var(--caramel)}
+@media (max-width:760px){.nav-links li:not(.keep){display:none}}
+
+/* ============ HERO ============ */
+.hero{min-height:100svh;display:grid;align-items:center;padding:7.5rem 0 4rem;position:relative;overflow-x:clip}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:3rem;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}.hero-cups{order:-1;height:340px}}
+.hero h1{font-size:clamp(2.9rem,6.4vw,5.4rem);margin:1.2rem 0 1.4rem}
+.hero h1 em{font-style:italic;color:var(--caramel)}
+.hero h1 .taro{color:var(--taro)} .hero h1 .matcha{color:var(--matcha)}
+.hero p.lede{font-size:1.08rem;color:var(--cream-dim);max-width:34rem;font-weight:300}
+.hero-cta{display:flex;gap:1rem;margin-top:2.2rem;flex-wrap:wrap}
+.hero-meta{display:flex;gap:2.4rem;margin-top:3rem;flex-wrap:wrap}
+.hero-meta div strong{font-family:var(--display);font-size:1.6rem;display:block;color:var(--cream)}
+.hero-meta div span{font-size:.8rem;color:var(--cream-dim);letter-spacing:.08em;text-transform:uppercase}
+.hero-cups{position:relative;height:560px}
+.cupf{position:absolute;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5));will-change:transform}
+.cupf svg{width:100%;height:auto}
+.cupf.c1{width:46%;left:24%;top:2%;z-index:3;animation:floaty 6s ease-in-out infinite}
+.cupf.c2{width:36%;left:0;top:26%;z-index:2;animation:floaty 7.5s ease-in-out -2s infinite}
+.cupf.c3{width:34%;right:0;top:34%;z-index:1;animation:floaty 8.5s ease-in-out -4s infinite}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-26px) rotate(2.5deg)}}
+.orbit{position:absolute;border:1px dashed rgba(224,164,88,.25);border-radius:50%;animation:spin 40s linear infinite}
+.orbit.o1{width:120%;height:120%;left:-10%;top:-6%}
+.orbit.o2{width:88%;height:88%;left:6%;top:10%;animation-duration:60s;animation-direction:reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scroll-hint{position:absolute;bottom:1.6rem;left:50%;transform:translateX(-50%);font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;color:var(--cream-dim);animation:hint 2.2s ease-in-out infinite}
+@keyframes hint{0%,100%{opacity:.4;transform:translate(-50%,0)}50%{opacity:1;transform:translate(-50%,8px)}}
+
+/* ============ MARQUEE ============ */
+.marquee{border-block:1px solid var(--line);padding:1.1rem 0;overflow:hidden;background:rgba(31,23,16,.6)}
+.mq-track{display:flex;gap:3rem;width:max-content;animation:mq 30s linear infinite}
+.mq-track span{font-family:var(--display);font-size:1.25rem;white-space:nowrap;color:var(--cream-dim);display:flex;align-items:center;gap:3rem}
+.mq-track span i{font-style:normal;color:var(--caramel);font-size:.8rem}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ============ SECTIONS ============ */
+section{padding:6.5rem 0}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:2rem;margin-bottom:3.2rem;flex-wrap:wrap}
+.sec-head h2{font-size:clamp(2rem,4.4vw,3.3rem);margin-top:1rem}
+.sec-head p{color:var(--cream-dim);max-width:26rem;font-weight:300}
+
+/* reveal on scroll */
+.rv{opacity:0;transform:translateY(34px);transition:opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ============ SIGNATURE CARDS ============ */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.4rem}
+.card{
+  position:relative;background:linear-gradient(170deg,var(--ink-3),var(--ink-2));
+  border:1px solid var(--line);border-radius:var(--rad);
+  padding:1.8rem 1.5rem 1.5rem;text-align:left;overflow:hidden;
+  transition:transform .35s cubic-bezier(.34,1.4,.64,1), border-color .35s, box-shadow .35s;
+  display:flex;flex-direction:column;gap:.4rem;color:var(--cream);
+}
+.card:hover{transform:translateY(-10px);border-color:color-mix(in srgb, var(--ac,#E0A458) 55%, transparent);box-shadow:var(--shadow)}
+.card::after{
+  content:"";position:absolute;inset:auto -30% -55% -30%;height:70%;border-radius:50%;
+  background:radial-gradient(closest-side, color-mix(in srgb, var(--ac,#E0A458) 26%, transparent), transparent);
+  opacity:0;transition:opacity .4s;
+}
+.card:hover::after{opacity:1}
+.card .cup-mini{width:110px;margin:0 auto 1rem;transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.card:hover .cup-mini{transform:translateY(-8px) rotate(-4deg) scale(1.06)}
+.card .tag{position:absolute;top:1rem;right:1rem;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;background:color-mix(in srgb, var(--ac,#E0A458) 20%, transparent);color:var(--ac,#E0A458);padding:.3rem .7rem;border-radius:999px;font-weight:600}
+.card h3{font-size:1.3rem}
+.card .desc{font-size:.85rem;color:var(--cream-dim);font-weight:300;flex:1}
+.card .row{display:flex;justify-content:space-between;align-items:center;margin-top:.9rem}
+.card .price{font-family:var(--display);font-size:1.25rem;color:var(--caramel)}
+.card .peek{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-dim)}
+.card:hover .peek{color:var(--ac,#E0A458)}
+
+/* ============ STORY ============ */
+.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+@media (max-width:860px){.story-grid{grid-template-columns:1fr}}
+.story p{color:var(--cream-dim);font-weight:300;margin-bottom:1.2rem}
+.story blockquote{font-family:var(--display);font-size:1.5rem;font-style:italic;color:var(--cream);border-left:3px solid var(--caramel);padding-left:1.4rem;margin:2rem 0}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem}
+.stat{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--rad);padding:2rem 1.6rem;transition:border-color .3s}
+.stat:hover{border-color:var(--caramel)}
+.stat strong{font-family:var(--display);font-size:2.6rem;color:var(--caramel);display:block;font-variant-numeric:tabular-nums}
+.stat span{color:var(--cream-dim);font-size:.85rem}
+
+/* ============ MENU ============ */
+.tabs{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2.4rem}
+.tab{padding:.6rem 1.4rem;border-radius:999px;border:1px solid var(--line);color:var(--cream-dim);font-size:.9rem;transition:all .25s}
+.tab:hover{border-color:var(--caramel);color:var(--cream)}
+.tab.on{background:var(--caramel);border-color:var(--caramel);color:var(--ink);font-weight:600}
+.menu-list{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 3rem}
+@media (max-width:760px){.menu-list{grid-template-columns:1fr}}
+.mi{display:flex;align-items:baseline;gap:.8rem;padding:1rem .4rem;border-bottom:1px dashed var(--line);opacity:0;transform:translateY(12px);animation:miIn .5s forwards}
+.mi:nth-child(odd){animation-delay:.05s}.mi:nth-child(even){animation-delay:.12s}
+@keyframes miIn{to{opacity:1;transform:none}}
+.mi .nm{font-weight:500}
+.mi .dots{flex:1;border-bottom:1px dotted rgba(244,233,214,.25);transform:translateY(-4px)}
+.mi .pr{font-family:var(--display);color:var(--caramel);font-variant-numeric:tabular-nums}
+.mi .sub{display:block;font-size:.78rem;color:var(--cream-dim);font-weight:300}
+
+/* ============ TOPPINGS STRIP ============ */
+.tops{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+.top-chip{display:flex;align-items:center;gap:.6rem;border:1px solid var(--line);border-radius:999px;padding:.65rem 1.3rem;font-size:.9rem;color:var(--cream-dim);transition:all .3s;background:var(--ink-2)}
+.top-chip:hover{transform:translateY(-4px) rotate(-1.5deg);border-color:var(--caramel);color:var(--cream)}
+.top-chip b{font-size:1.1rem}
+
+/* ============ LOCATIONS ============ */
+.locs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.2rem}
+.loc{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--rad);padding:1.6rem;transition:all .3s;position:relative;overflow:hidden}
+.loc:hover{border-color:var(--caramel);transform:translateY(-6px)}
+.loc h3{font-size:1.15rem;margin-bottom:.3rem}
+.loc p{font-size:.85rem;color:var(--cream-dim);font-weight:300}
+.loc .pin{color:var(--caramel);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;font-weight:600}
+.loc .hours{margin-top:.8rem;font-size:.78rem;color:var(--matcha)}
+
+/* ============ QUOTES ============ */
+.quotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.4rem}
+.q{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--rad);padding:1.8rem;font-weight:300;color:var(--cream-dim)}
+.q .stars{color:var(--caramel);letter-spacing:.2em;margin-bottom:.8rem}
+.q footer{margin-top:1rem;font-size:.82rem;color:var(--cream)}
+
+/* ============ FOOTER ============ */
+footer.site{border-top:1px solid var(--line);padding:4rem 0 2.5rem;background:var(--ink-2)}
+.foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
+@media (max-width:760px){.foot-grid{grid-template-columns:1fr}}
+footer.site h4{font-family:var(--display);font-size:1.1rem;margin-bottom:1rem}
+footer.site ul{list-style:none}
+footer.site li{margin:.5rem 0}
+footer.site a{color:var(--cream-dim);text-decoration:none;font-size:.9rem}
+footer.site a:hover{color:var(--caramel)}
+.fine{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;color:var(--cream-dim);font-size:.78rem;border-top:1px solid var(--line);padding-top:1.6rem}
+
+/* ============ MODALS / POPUPS ============ */
+.overlay{
+  position:fixed;inset:0;z-index:90;background:rgba(12,9,5,.72);backdrop-filter:blur(8px);
+  display:grid;place-items:center;padding:1.2rem;
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{
+  background:linear-gradient(165deg,var(--ink-3),var(--ink-2));
+  border:1px solid var(--line);border-radius:28px;max-width:560px;width:100%;
+  padding:2.4rem;position:relative;box-shadow:var(--shadow);
+  transform:translateY(40px) scale(.95);transition:transform .4s cubic-bezier(.22,1.2,.36,1);
+  max-height:88svh;overflow-y:auto;
+}
+.overlay.open .modal{transform:none}
+.modal .x{position:absolute;top:1rem;right:1rem;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:1rem;transition:all .25s;z-index:2}
+.modal .x:hover{background:var(--caramel);color:var(--ink);transform:rotate(90deg)}
+
+/* welcome popup */
+.welcome{text-align:center;max-width:480px;overflow:hidden}
+.welcome .wcup{width:120px;margin:0 auto 1.2rem;animation:floaty 4s ease-in-out infinite}
+.welcome h3{font-size:2rem;margin-bottom:.6rem}
+.welcome h3 em{color:var(--caramel);font-style:italic}
+.welcome p{color:var(--cream-dim);font-weight:300;margin-bottom:1.4rem}
+.code{
+  font-family:var(--display);font-size:1.3rem;letter-spacing:.2em;color:var(--caramel);
+  border:1.5px dashed var(--caramel);border-radius:12px;padding:.7rem 1.4rem;display:inline-block;margin-bottom:1.6rem;
+  user-select:all;
+}
+
+/* drink modal */
+.dm-grid{display:grid;grid-template-columns:150px 1fr;gap:1.8rem;align-items:start}
+@media (max-width:520px){.dm-grid{grid-template-columns:1fr}.dm-grid .dm-cup{width:120px;margin:0 auto}}
+.dm-cup{animation:floaty 5s ease-in-out infinite}
+.dm h3{font-size:1.7rem;margin-bottom:.2rem}
+.dm .dm-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ac,#E0A458);font-weight:600}
+.dm p{color:var(--cream-dim);font-weight:300;font-size:.92rem;margin:.7rem 0 1rem}
+.dm .notes{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.dm .notes span{font-size:.72rem;border:1px solid var(--line);padding:.28rem .8rem;border-radius:999px;color:var(--cream-dim)}
+.dm .pick{margin-bottom:1rem}
+.dm .pick label{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-dim);display:block;margin-bottom:.45rem}
+.dm .pick .opts{display:flex;gap:.45rem;flex-wrap:wrap}
+.dm .opt{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.35rem .95rem;transition:all .2s;color:var(--cream-dim)}
+.dm .opt.on{background:var(--ac,#E0A458);border-color:var(--ac,#E0A458);color:var(--ink);font-weight:600}
+.dm .dm-foot{display:flex;justify-content:space-between;align-items:center;margin-top:1.4rem;gap:1rem;flex-wrap:wrap}
+.dm .dm-price{font-family:var(--display);font-size:1.9rem;color:var(--caramel)}
+
+/* order drawer */
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(420px,94vw);z-index:95;
+  background:var(--ink-2);border-left:1px solid var(--line);
+  transform:translateX(105%);transition:transform .45s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;box-shadow:-30px 0 80px rgba(0,0,0,.5);
+}
+.drawer.open{transform:none}
+.drawer header{padding:1.6rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.drawer header h3{font-size:1.4rem}
+.drawer .items{flex:1;overflow-y:auto;padding:1.2rem 1.6rem;display:flex;flex-direction:column;gap:1rem}
+.d-item{display:flex;justify-content:space-between;gap:1rem;border:1px solid var(--line);border-radius:14px;padding:.9rem 1.1rem;align-items:center;animation:miIn .4s}
+.d-item .n{font-weight:500;font-size:.95rem}
+.d-item .m{font-size:.75rem;color:var(--cream-dim)}
+.d-item .p{font-family:var(--display);color:var(--caramel);white-space:nowrap}
+.d-item .rm{color:var(--cream-dim);font-size:.8rem;padding:.2rem .4rem}
+.d-item .rm:hover{color:var(--berry)}
+.d-empty{text-align:center;color:var(--cream-dim);font-weight:300;margin-top:3rem}
+.d-empty b{font-size:2.4rem;display:block;margin-bottom:.6rem}
+.drawer footer{padding:1.4rem 1.6rem;border-top:1px solid var(--line)}
+.d-total{display:flex;justify-content:space-between;font-family:var(--display);font-size:1.3rem;margin-bottom:1rem}
+.drawer .btn{width:100%;justify-content:center}
+
+/* floating order button */
+.fab{
+  position:fixed;right:1.4rem;bottom:1.4rem;z-index:70;
+  width:62px;height:62px;border-radius:50%;background:var(--caramel);color:var(--ink);
+  display:grid;place-items:center;font-size:1.5rem;box-shadow:0 14px 34px -6px rgba(224,164,88,.55);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  animation:fabPulse 3s ease-in-out infinite;
+}
+.fab:hover{transform:scale(1.12) rotate(-8deg)}
+.fab .badge{
+  position:absolute;top:-4px;right:-4px;min-width:24px;height:24px;border-radius:999px;
+  background:var(--berry);color:var(--ink);font-size:.75rem;font-weight:700;
+  display:grid;place-items:center;padding:0 .35rem;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.fab .badge.show{transform:scale(1)}
+@keyframes fabPulse{0%,100%{box-shadow:0 14px 34px -6px rgba(224,164,88,.55)}50%{box-shadow:0 14px 44px 2px rgba(224,164,88,.4)}}
+
+/* toasts */
+#toasts{position:fixed;left:1.4rem;bottom:1.4rem;z-index:80;display:flex;flex-direction:column;gap:.7rem;max-width:330px}
+.toast{
+  background:var(--ink-3);border:1px solid var(--line);border-left:3px solid var(--caramel);
+  border-radius:14px;padding:.85rem 1.1rem;font-size:.85rem;color:var(--cream-dim);
+  display:flex;gap:.7rem;align-items:center;box-shadow:var(--shadow);
+  animation:toastIn .5s cubic-bezier(.22,1.2,.36,1);
+}
+.toast b{color:var(--cream);font-weight:500}
+.toast.bye{animation:toastOut .4s forwards}
+@keyframes toastIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-40px)}}
+
+/* pearl confetti */
+.confetti{position:fixed;border-radius:50%;z-index:99;pointer-events:none;animation:cf var(--t,1.6s) cubic-bezier(.2,.6,.4,1) forwards}
+@keyframes cf{
+  from{transform:translate(0,0) scale(1);opacity:1}
+  to{transform:translate(var(--cx,0), var(--cy,-300px)) scale(.4);opacity:0}
+}
+
+/* cup pearls bobbing (inside SVG) */
+.bob{animation:bob 3.2s ease-in-out infinite}
+.bob2{animation:bob 4.1s ease-in-out -1.2s infinite}
+.bob3{animation:bob 3.7s ease-in-out -2.1s infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.steam{opacity:.55;animation:steam 3.4s ease-in-out infinite}
+@keyframes steam{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(-8px);opacity:.6}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.15s !important}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<!-- ambient floating pearls (filled by JS) -->
+<div id="ambient" aria-hidden="true"></div>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top"><b>BARAKO</b><span></span></a>
+    <ul class="nav-links">
+      <li><a href="#signature">Signature</a></li>
+      <li><a href="#story">Our Story</a></li>
+      <li><a href="#menu">Menu</a></li>
+      <li><a href="#locations">Outlets</a></li>
+      <li class="keep"><button class="btn" onclick="openDrawer()">Order Now 🧋</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Bubble Tea &amp; Coffee · Bombay se, pyaar se</p>
+      <h1>Brewed <em>bold.</em><br>Shaken <span class="taro">fresh.</span><br>Sipped <span class="matcha">slow.</span></h1>
+      <p class="lede">Mumbai's answer to mundane beverages — slow-caramelised brown sugar boba, ceremonial matcha, blooming fruit teas and serious coffee, hand-shaken to order across 8 outlets.</p>
+      <div class="hero-cta">
+        <button class="btn" onclick="openDrawer()">Build your cup</button>
+        <a class="btn ghost" href="#signature">Explore the drinks ↓</a>
+      </div>
+      <div class="hero-meta">
+        <div><strong data-count="8">0</strong><span>Outlets in Mumbai</span></div>
+        <div><strong data-count="42">0</strong><span>Drinks on the menu</span></div>
+        <div><strong data-count="120" data-suffix="K+">0</strong><span>Cups shaken</span></div>
+      </div>
+    </div>
+    <div class="hero-cups" id="heroCups" aria-hidden="true">
+      <div class="orbit o1"></div>
+      <div class="orbit o2"></div>
+      <div class="cupf c1" data-depth="18" id="hc1"></div>
+      <div class="cupf c2" data-depth="34" id="hc2"></div>
+      <div class="cupf c3" data-depth="26" id="hc3"></div>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll to sip</div>
+</header>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="mq-track" id="mq"></div>
+</div>
+
+<!-- ============ SIGNATURE DRINKS ============ -->
+<section id="signature">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <p class="eyebrow">The Hall of Fame</p>
+        <h2>Signature sips,<br>shaken to order</h2>
+      </div>
+      <p>Tap any cup for the full story — tasting notes, toppings, and your sweetness dialled just right.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+</section>
+
+<!-- ============ STORY ============ -->
+<section id="story" style="background:rgba(31,23,16,.45)">
+  <div class="wrap story-grid">
+    <div class="story rv">
+      <p class="eyebrow">The Barako Story</p>
+      <h2 style="font-size:clamp(2rem,4vw,3rem);margin:1rem 0 1.6rem">Strong name.<br>Stronger brews.</h2>
+      <p>"Barako" means bold — and that's the only way we know how to brew. What started as one tiny counter and a shaker has grown into Mumbai's favourite boba ritual: premium teas steeped fresh every few hours, pearls cooked in small batches, and syrups we caramelise ourselves.</p>
+      <p>From classic milk teas to refreshing fruit concoctions and unique specialty blends — plus steamed baos and momos for the snackers — every cup is an answer to the mundane.</p>
+      <blockquote>"Exciting sips. Delightful chews. Zero boring beverages."</blockquote>
+    </div>
+    <div class="stats rv">
+      <div class="stat"><strong data-count="8">0</strong><span>Outlets across Mumbai — Colaba to Mulund</span></div>
+      <div class="stat"><strong data-count="14">0</strong><span>Toppings, from tapioca to popping boba</span></div>
+      <div class="stat"><strong data-count="3" data-suffix="hr">0</strong><span>Max age of any tea we pour</span></div>
+      <div class="stat"><strong data-count="100" data-suffix="%">0</strong><span>Pearls cooked fresh in-house, daily</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MENU ============ -->
+<section id="menu">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <p class="eyebrow">The Full Menu</p>
+        <h2>Pick your poison<br><em style="color:var(--caramel)">(it's tea)</em></h2>
+      </div>
+      <p>Every drink comes iced or hot, with sweetness from 0 to 100% and alt-milks — oat, almond, soy — on request.</p>
+    </div>
+    <div class="tabs rv" id="tabs" role="tablist"></div>
+    <div class="menu-list" id="menuList"></div>
+  </div>
+</section>
+
+<!-- ============ TOPPINGS ============ -->
+<section style="padding-block:4rem;background:rgba(31,23,16,.45)">
+  <div class="wrap rv" style="text-align:center">
+    <p class="eyebrow" style="justify-content:center">Make it yours</p>
+    <h2 style="font-size:clamp(1.8rem,3.6vw,2.6rem);margin:1rem 0 2.2rem">Toppings worth chewing on</h2>
+    <div class="tops">
+      <div class="top-chip"><b>⚫</b> Tapioca Pearls</div>
+      <div class="top-chip"><b>🫧</b> Popping Boba</div>
+      <div class="top-chip"><b>🍮</b> Egg Pudding</div>
+      <div class="top-chip"><b>🌿</b> Grass Jelly</div>
+      <div class="top-chip"><b>🧀</b> Cheese Foam</div>
+      <div class="top-chip"><b>🥥</b> Nata de Coco</div>
+      <div class="top-chip"><b>🍓</b> Fruit Jellies</div>
+      <div class="top-chip"><b>🍦</b> Ice Cream Float</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOCATIONS ============ -->
+<section id="locations">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <p class="eyebrow">Find your fix</p>
+        <h2>8 outlets.<br>One city obsessed.</h2>
+      </div>
+      <p>From town to the suburbs — there's always a Barako on your way.</p>
+    </div>
+    <div class="locs rv" id="locs"></div>
+  </div>
+</section>
+
+<!-- ============ QUOTES ============ -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="quotes rv">
+      <div class="q"><div class="stars">★★★★★</div>"The brown sugar boba is dangerously good. The pearls are actually soft AND chewy — rare in this city."<footer>— Ananya, Lower Parel</footer></div>
+      <div class="q"><div class="stars">★★★★★</div>"Came for the matcha, stayed for the baos. My weekend ritual now."<footer>— Kabir, Bandra West</footer></div>
+      <div class="q"><div class="stars">★★★★★</div>"Finally a place that lets me do 25% sweet with oat milk without a lecture."<footer>— Shreya, Colaba</footer></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="logo" href="#top" style="margin-bottom:1rem"><b>BARAKO</b><span></span></a>
+        <p style="color:var(--cream-dim);font-weight:300;font-size:.9rem;max-width:26rem;margin-top:.8rem">Bubble tea &amp; coffee, shaken fresh in Mumbai. Exciting sips, delightful chews — zero boring beverages.</p>
+        <div style="display:flex;gap:.8rem;margin-top:1.4rem">
+          <a class="btn ghost" style="padding:.5rem 1.1rem" href="https://www.instagram.com/barako.cafe/" target="_blank" rel="noopener">Instagram</a>
+          <a class="btn ghost" style="padding:.5rem 1.1rem" href="https://barako.in" target="_blank" rel="noopener">barako.in</a>
+        </div>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="#signature">Signature drinks</a></li>
+          <li><a href="#menu">Full menu</a></li>
+          <li><a href="#locations">Outlets</a></li>
+          <li><a href="#story">Our story</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Visit</h4>
+        <ul>
+          <li><a href="#locations">Colaba · Lower Parel · Bandra</a></li>
+          <li><a href="#locations">Andheri · Malad · Mulund</a></li>
+          <li><a href="#locations">Ghatkopar · Apollo Bunder</a></li>
+          <li style="color:var(--matcha);font-size:.85rem">Open daily · 10 AM – 11 PM</li>
+        </ul>
+      </div>
+    </div>
+    <div class="fine">
+      <span>© 2026 Barako Bubble Tea &amp; Coffee. Brewed with ❤️ in Mumbai.</span>
+      <span>Sip bold. Chew slow.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ FAB ============ -->
+<button class="fab" onclick="openDrawer()" aria-label="Open your order">
+  🧋<span class="badge" id="cartBadge">0</span>
+</button>
+
+<!-- ============ TOASTS ============ -->
+<div id="toasts" aria-live="polite"></div>
+
+<!-- ============ WELCOME POPUP ============ -->
+<div class="overlay" id="welcomeOv" role="dialog" aria-modal="true" aria-label="Welcome offer">
+  <div class="modal welcome">
+    <button class="x" onclick="closeOv('welcomeOv')" aria-label="Close">✕</button>
+    <div class="wcup" id="welcomeCup"></div>
+    <h3>First sip's <em>on us</em></h3>
+    <p>Flat 20% off your first order — because bold decisions (like clicking this site) deserve rewards.</p>
+    <div class="code" title="Click to select">FIRSTSIP20</div><br>
+    <button class="btn" onclick="closeOv('welcomeOv');openDrawer()">Claim &amp; start sipping</button>
+  </div>
+</div>
+
+<!-- ============ DRINK MODAL ============ -->
+<div class="overlay" id="drinkOv" role="dialog" aria-modal="true" aria-label="Drink details">
+  <div class="modal dm" id="drinkModal"></div>
+</div>
+
+<!-- ============ NEWSLETTER POPUP ============ -->
+<div class="overlay" id="newsOv" role="dialog" aria-modal="true" aria-label="Join the boba club">
+  <div class="modal welcome">
+    <button class="x" onclick="closeOv('newsOv')" aria-label="Close">✕</button>
+    <h3 style="margin-top:.5rem">Join the <em>Boba Club</em> 🫧</h3>
+    <p>Secret menu drops, new-flavour first dibs, and a free topping every month. No spam — just pearls of wisdom.</p>
+    <form onsubmit="joinClub(event)" style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center">
+      <input required type="email" placeholder="you@example.com" style="flex:1;min-width:220px;background:var(--ink);border:1px solid var(--line);border-radius:999px;padding:.75rem 1.3rem;color:var(--cream);font:inherit" aria-label="Email address">
+      <button class="btn" type="submit">Join</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ ORDER DRAWER ============ -->
+<aside class="drawer" id="drawer" aria-label="Your order">
+  <header>
+    <h3>Your Order</h3>
+    <button class="x" style="position:static" onclick="closeDrawer()" aria-label="Close order">✕</button>
+  </header>
+  <div class="items" id="drawerItems"></div>
+  <footer>
+    <div class="d-total"><span>Total</span><span id="dTotal">₹0</span></div>
+    <button class="btn" onclick="checkout()">Checkout →</button>
+    <p style="font-size:.72rem;color:var(--cream-dim);text-align:center;margin-top:.7rem">Demo storefront — ordering launches soon. Find us on Zomato till then!</p>
+  </footer>
+</aside>
+
+<script>
+/* ================= DATA ================= */
+const DRINKS=[
+  {id:"bsb",name:"Brown Sugar Boba",cat:"Milk Teas",tag:"Bestseller",price:280,ac:"#E0A458",
+   c:{liq1:"#8C5A2B",liq2:"#3E2A1C",foam:"#F2E7D8",pearl:"#241207",stripes:true},
+   desc:"Slow-caramelised brown sugar syrup painted up the cup in tiger stripes, fresh milk, and warm tapioca pearls cooked in the same syrup.",
+   notes:["Caramel","Smoky","Creamy"]},
+  {id:"taro",name:"Taro Milk Tea",cat:"Milk Teas",tag:"Cult Fave",price:290,ac:"#B79CE4",
+   c:{liq1:"#9B7FD4",liq2:"#6C4FA1",foam:"#EFE6FF",pearl:"#241207"},
+   desc:"Real taro root blended silky-smooth into creamy milk tea — nutty, subtly sweet, and unapologetically purple.",
+   notes:["Nutty","Velvety","Vanilla"]},
+  {id:"matcha",name:"Matcha Milk Tea",cat:"Milk Teas",tag:"Ceremonial",price:300,ac:"#9DC183",
+   c:{liq1:"#8AAF6B",liq2:"#4E6B3B",foam:"#F0F5E6",pearl:"#241207"},
+   desc:"Stone-ground Japanese matcha whisked into chilled milk, mildly sweetened. Earthy, grassy, gorgeous.",
+   notes:["Earthy","Grassy","Umami"]},
+  {id:"sberry",name:"Strawberry Matcha",cat:"Milk Teas",tag:"Photogenic",price:320,ac:"#F0949F",
+   c:{liq1:"#8AAF6B",liq2:"#E76F7E",foam:"#FBE9EC",pearl:"#7A2432"},
+   desc:"A layered stunner — crushed strawberries below, cold milk in the middle, vibrant matcha on top. Stir, snap, sip.",
+   notes:["Berry","Fresh","Earthy"]},
+  {id:"okinawa",name:"Okinawa Milk Tea",cat:"Milk Teas",tag:"Signature",price:270,ac:"#D2955F",
+   c:{liq1:"#A8713D",liq2:"#5C3A1E",foam:"#F2E7D8",pearl:"#241207"},
+   desc:"A highly addictive roasted brown-sugar milk tea inspired by the Okinawa islands of Japan. Toasty and toffee-like.",
+   notes:["Toffee","Roasty","Smooth"]},
+  {id:"classic",name:"Classic Pearl Milk Tea",cat:"Milk Teas",tag:"OG",price:250,ac:"#C9A87C",
+   c:{liq1:"#C9A87C",liq2:"#8A6B45",foam:"#F2E7D8",pearl:"#241207"},
+   desc:"Where it all began — robust black tea, fresh milk, and a generous scoop of chewy pearls. The classic, done right.",
+   notes:["Malty","Balanced","Classic"]},
+  {id:"passion",name:"Passionfruit Green Tea",cat:"Fruit Teas",tag:"Zingy",price:260,ac:"#F2C14E",
+   c:{liq1:"#F2C14E",liq2:"#D98E2B",foam:"transparent",pearl:"#F2C14E",popping:true},
+   desc:"Jasmine green tea shaken hard with real passionfruit pulp and golden popping boba that bursts citrus with every chew.",
+   notes:["Tangy","Tropical","Bright"]},
+  {id:"lychee",name:"Lychee Burst",cat:"Fruit Teas",tag:"Refresher",price:270,ac:"#F0B9C4",
+   c:{liq1:"#F5D4DB",liq2:"#E790A4",foam:"transparent",pearl:"#FBE9EC",popping:true},
+   desc:"Fragrant lychee over chilled jasmine tea with lychee popping pearls and a squeeze of lime. Summer in a cup.",
+   notes:["Floral","Juicy","Cooling"]},
+  {id:"peach",name:"Peach Oolong",cat:"Fruit Teas",tag:"Delicate",price:260,ac:"#F3A26D",
+   c:{liq1:"#F5B983",liq2:"#DD7E3E",foam:"transparent",pearl:"#B85C22"},
+   desc:"White peach and roasted oolong — a soft, fragrant pairing finished with peach jelly ribbons.",
+   notes:["Stone fruit","Roasty","Silky"]},
+  {id:"mango",name:"Mango Popping Boba",cat:"Fruit Teas",tag:"Seasonal",price:280,ac:"#F5C33B",
+   c:{liq1:"#F8D45C",liq2:"#E89B1C",foam:"transparent",pearl:"#F5C33B",popping:true},
+   desc:"Alphonso season, bottled — thick mango purée over green tea with mango popping boba. Aam aadmi approved.",
+   notes:["Alphonso","Lush","Sunny"]},
+  {id:"vietcb",name:"Vietnamese Cold Brew",cat:"Coffee",tag:"Strong",price:240,ac:"#A5764A",
+   c:{liq1:"#5C3A1E",liq2:"#2B1A0D",foam:"#E8D9BC",pearl:"#241207"},
+   desc:"18-hour cold brew over condensed milk — barako by name, barako by nature. Not for the faint-hearted.",
+   notes:["Bold","Chocolatey","Sweet kick"]},
+  {id:"spanish",name:"Spanish Latte",cat:"Coffee",tag:"Smooth",price:260,ac:"#C9A87C",
+   c:{liq1:"#B98A55",liq2:"#6B4423",foam:"#F2E7D8",pearl:"#241207"},
+   desc:"Double espresso folded into sweetened milk, served over ice. Dangerously drinkable.",
+   notes:["Sweet","Rich","Rounded"]}
+];
+const MENU={
+  "Milk Teas":[
+    ["Brown Sugar Boba","tiger-striped, house pearls",280],
+    ["Okinawa Milk Tea","roasted brown sugar",270],
+    ["Taro Milk Tea","real taro root, silky",290],
+    ["Matcha Milk Tea","stone-ground, ceremonial",300],
+    ["Strawberry Matcha","layered, photogenic",320],
+    ["Classic Pearl Milk Tea","the OG",250],
+    ["Thai Milk Tea","spiced, amber, iconic",270],
+    ["Chocolate Malt Boba","dark cocoa + malt",290]
+  ],
+  "Fruit Teas":[
+    ["Passionfruit Green Tea","popping boba",260],
+    ["Lychee Burst","jasmine base, lime",270],
+    ["Peach Oolong","peach jelly ribbons",260],
+    ["Mango Popping Boba","alphonso season",280],
+    ["Kiwi Cooler","crushed kiwi, mint",260],
+    ["Watermelon Yakult","fizzy-fresh probiotic",290]
+  ],
+  "Coffee":[
+    ["Vietnamese Cold Brew","18-hr brew, condensed milk",240],
+    ["Spanish Latte","sweetened, over ice",260],
+    ["Classic Cappuccino","hot, dusted cocoa",220],
+    ["Coconut Americano","cold, faintly sweet",230],
+    ["Caramel Macchiato","house caramel",270],
+    ["Espresso Tonic","bright & bubbly",250]
+  ],
+  "Bites":[
+    ["Steamed Bao Buns (2 pc)","chicken / veg / paneer",220],
+    ["Momos (6 pc)","steamed or pan-fried",190],
+    ["Korean Cream Buns","weekend special",180],
+    ["Chilli Garlic Wontons","crispy, saucy",210]
+  ]
+};
+const LOCATIONS=[
+  ["Colaba","Near Regal Circle, Shahid Bhagat Singh Rd","South Bombay flagship"],
+  ["Lower Parel","Palladium Mall, ground floor","Mall favourite"],
+  ["Bandra West","Hill Road, near Elco Market","Always buzzing"],
+  ["Andheri West","7 Bungalows, JP Road","Sunset special"],
+  ["Malad East","Near Metro Mall","Quick-grab kiosk"],
+  ["Mulund West","LBS Marg, near R Mall","Family favourite"],
+  ["Ghatkopar East","M.G. Road, near station","Commuter's choice"],
+  ["Apollo Bunder","Gateway promenade","Sea-breeze sips"]
+];
+
+/* ================= SVG CUP BUILDER ================= */
+let GID=0;
+function cupSVG(c,opts={}){
+  const g=++GID, size=opts.size||"100%";
+  const stripes=c.stripes?`
+    <path d="M62 92 q4 30 -2 60 q-3 25 2 70" stroke="${c.liq2}" stroke-width="7" fill="none" opacity=".85" stroke-linecap="round"/>
+    <path d="M96 90 q-5 40 3 80 q3 30 -2 55" stroke="${c.liq2}" stroke-width="8" fill="none" opacity=".8" stroke-linecap="round"/>
+    <path d="M132 92 q5 35 -3 70 q-3 28 3 62" stroke="${c.liq2}" stroke-width="7" fill="none" opacity=".85" stroke-linecap="round"/>`:"";
+  const pearls = c.popping ? `
+    <circle cx="76" cy="242" r="9" fill="${c.pearl}" opacity=".9"/><circle cx="100" cy="250" r="10" fill="${c.pearl}" opacity=".85"/>
+    <circle cx="124" cy="241" r="9" fill="${c.pearl}" opacity=".9"/><circle cx="88" cy="256" r="9" fill="${c.pearl}"/>
+    <circle cx="112" cy="258" r="9" fill="${c.pearl}"/>
+    <circle class="bob" cx="82" cy="205" r="7" fill="${c.pearl}" opacity=".75"/>
+    <circle class="bob2" cx="118" cy="190" r="6" fill="${c.pearl}" opacity=".7"/>
+    <circle class="bob3" cx="100" cy="170" r="5" fill="${c.pearl}" opacity=".6"/>` : `
+    <circle cx="76" cy="244" r="8" fill="${c.pearl}"/><circle cx="94" cy="252" r="9" fill="${c.pearl}"/>
+    <circle cx="113" cy="246" r="8" fill="${c.pearl}"/><circle cx="128" cy="252" r="7" fill="${c.pearl}"/>
+    <circle cx="85" cy="258" r="8" fill="${c.pearl}"/><circle cx="105" cy="260" r="8" fill="${c.pearl}"/>
+    <circle class="bob" cx="80" cy="210" r="6" fill="${c.pearl}" opacity=".85"/>
+    <circle class="bob2" cx="120" cy="196" r="5.5" fill="${c.pearl}" opacity=".8"/>
+    <circle class="bob3" cx="102" cy="178" r="5" fill="${c.pearl}" opacity=".7"/>`;
+  const foam = c.foam!=="transparent" ? `
+    <path d="M56 86 Q70 74 100 76 Q130 74 144 86 L142 112 Q100 122 58 112 Z" fill="${c.foam}" opacity=".95"/>`:"";
+  return `<svg viewBox="0 0 200 300" width="${size}" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg${g}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${c.liq1}"/><stop offset="1" stop-color="${c.liq2}"/>
+    </linearGradient>
+    <clipPath id="cp${g}"><path d="M58 84 L142 84 L133 268 Q100 282 67 268 Z"/></clipPath>
+  </defs>
+  <!-- straw -->
+  <rect x="112" y="8" width="16" height="96" rx="8" transform="rotate(9 120 56)" fill="${c.pearl==='#241207'?'#E0A458':c.pearl}" opacity=".9"/>
+  <rect x="112" y="8" width="7" height="96" rx="3.5" transform="rotate(9 120 56)" fill="rgba(255,255,255,.28)"/>
+  <!-- dome lid -->
+  <path d="M54 84 Q100 44 146 84 Z" fill="rgba(244,233,214,.16)" stroke="rgba(244,233,214,.45)" stroke-width="2"/>
+  <!-- cup body -->
+  <path d="M58 84 L142 84 L133 268 Q100 282 67 268 Z" fill="rgba(244,233,214,.07)" stroke="rgba(244,233,214,.4)" stroke-width="2.5"/>
+  <g clip-path="url(#cp${g})">
+    <rect x="50" y="98" width="100" height="190" fill="url(#lg${g})"/>
+    ${stripes}${pearls}
+  </g>
+  ${foam}
+  <!-- glass highlight -->
+  <path d="M70 100 Q66 180 72 255" stroke="rgba(255,255,255,.25)" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <!-- lid rim -->
+  <rect x="50" y="80" width="100" height="8" rx="4" fill="rgba(244,233,214,.5)"/>
+  <!-- steam wisps -->
+  <path class="steam" d="M84 30 q6 -10 0 -18" stroke="rgba(244,233,214,.5)" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="steam" style="animation-delay:-1.5s" d="M66 38 q6 -10 0 -18" stroke="rgba(244,233,214,.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>`;
+}
+
+/* ================= AMBIENT PEARLS ================= */
+(function(){
+  const host=document.getElementById("ambient");
+  const hues=["rgba(224,164,88,.16)","rgba(183,156,228,.14)","rgba(157,193,131,.13)","rgba(240,148,159,.12)","rgba(244,233,214,.09)"];
+  for(let i=0;i<26;i++){
+    const p=document.createElement("div");p.className="pearl";
+    const s=6+Math.random()*26;
+    p.style.width=p.style.height=s+"px";
+    p.style.left=Math.random()*100+"vw";p.style.top=Math.random()*100+"vh";
+    p.style.setProperty("--pc",hues[i%hues.length]);
+    p.style.setProperty("--dur",(18+Math.random()*22)+"s");
+    p.style.setProperty("--del",(-Math.random()*20)+"s");
+    p.style.setProperty("--dx",(Math.random()*160-80)+"px");
+    p.style.setProperty("--dy",(-40-Math.random()*140)+"px");
+    p.style.setProperty("--ds",(0.8+Math.random()*.7));
+    host.appendChild(p);
+  }
+})();
+
+/* ================= HERO CUPS + PARALLAX ================= */
+document.getElementById("hc1").innerHTML=cupSVG(DRINKS[0].c);
+document.getElementById("hc2").innerHTML=cupSVG(DRINKS[1].c);
+document.getElementById("hc3").innerHTML=cupSVG(DRINKS[2].c);
+document.getElementById("welcomeCup").innerHTML=cupSVG(DRINKS[0].c);
+const heroCups=document.getElementById("heroCups");
+if(matchMedia("(pointer:fine)").matches){
+  addEventListener("mousemove",e=>{
+    const x=(e.clientX/innerWidth-.5),y=(e.clientY/innerHeight-.5);
+    heroCups.querySelectorAll(".cupf").forEach(c=>{
+      const d=+c.dataset.depth;
+      c.style.marginLeft=(x*d)+"px";c.style.marginTop=(y*d)+"px";
+    });
+  },{passive:true});
+}
+
+/* ================= MARQUEE ================= */
+(function(){
+  const words=["BROWN SUGAR BOBA","TARO","MATCHA","OKINAWA","PASSIONFRUIT","LYCHEE BURST","COLD BREW","PEACH OOLONG","POPPING BOBA","CHEESE FOAM"];
+  const seq=words.map(w=>`<span>${w}<i>◉</i></span>`).join("");
+  document.getElementById("mq").innerHTML=seq+seq;
+})();
+
+/* ================= SIGNATURE CARDS ================= */
+const cardsEl=document.getElementById("cards");
+DRINKS.forEach((d,i)=>{
+  const b=document.createElement("button");
+  b.className="card rv";b.style.setProperty("--ac",d.ac);b.style.transitionDelay=(i%4*70)+"ms";
+  b.setAttribute("aria-haspopup","dialog");
+  b.innerHTML=`<span class="tag">${d.tag}</span>
+    <div class="cup-mini">${cupSVG(d.c)}</div>
+    <h3>${d.name}</h3>
+    <p class="desc">${d.desc.split("—")[0].split(".")[0]}.</p>
+    <div class="row"><span class="price">₹${d.price}</span><span class="peek">Tap to customise ↗</span></div>`;
+  b.addEventListener("click",()=>openDrink(d));
+  cardsEl.appendChild(b);
+});
+
+/* ================= MENU TABS ================= */
+const tabsEl=document.getElementById("tabs"),menuEl=document.getElementById("menuList");
+Object.keys(MENU).forEach((k,i)=>{
+  const t=document.createElement("button");
+  t.className="tab"+(i===0?" on":"");t.textContent=k;t.setAttribute("role","tab");
+  t.addEventListener("click",()=>{
+    tabsEl.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on");renderMenu(k);
+  });
+  tabsEl.appendChild(t);
+});
+function renderMenu(k){
+  menuEl.innerHTML=MENU[k].map(([n,s,p])=>
+    `<div class="mi"><span class="nm">${n}<span class="sub">${s}</span></span><span class="dots"></span><span class="pr">₹${p}</span></div>`).join("");
+}
+renderMenu("Milk Teas");
+
+/* ================= LOCATIONS ================= */
+document.getElementById("locs").innerHTML=LOCATIONS.map(([n,a,t])=>
+  `<div class="loc"><span class="pin">📍 ${t}</span><h3>${n}</h3><p>${a}</p><p class="hours">● Open · 10 AM – 11 PM</p></div>`).join("");
+
+/* ================= SCROLL: NAV + REVEAL + COUNTERS ================= */
+const nav=document.getElementById("nav");
+addEventListener("scroll",()=>nav.classList.toggle("scrolled",scrollY>40),{passive:true});
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}
+}),{threshold:.12});
+document.querySelectorAll(".rv").forEach(el=>io.observe(el));
+const cio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;cio.unobserve(e.target);
+  const el=e.target,end=+el.dataset.count,suf=el.dataset.suffix||"";
+  const t0=performance.now(),dur=1400;
+  (function tick(t){
+    const p=Math.min(1,(t-t0)/dur),v=Math.round(end*(1-Math.pow(1-p,3)));
+    el.textContent=v+suf;if(p<1)requestAnimationFrame(tick);
+  })(t0);
+}),{threshold:.5});
+document.querySelectorAll("[data-count]").forEach(el=>cio.observe(el));
+
+/* ================= OVERLAYS ================= */
+function openOv(id){document.getElementById(id).classList.add("open");document.body.style.overflow="hidden";}
+function closeOv(id){document.getElementById(id).classList.remove("open");document.body.style.overflow="";}
+document.querySelectorAll(".overlay").forEach(ov=>{
+  ov.addEventListener("click",e=>{if(e.target===ov)closeOv(ov.id);});
+});
+addEventListener("keydown",e=>{
+  if(e.key==="Escape"){document.querySelectorAll(".overlay.open").forEach(o=>closeOv(o.id));closeDrawer();}
+});
+
+/* welcome popup — once per session, after 2.5s */
+if(!sessionStorage.getItem("bk_welcome")){
+  setTimeout(()=>{openOv("welcomeOv");sessionStorage.setItem("bk_welcome","1");},2500);
+}
+/* newsletter popup — once, at 70% scroll depth */
+let newsShown=!!sessionStorage.getItem("bk_news");
+addEventListener("scroll",()=>{
+  if(newsShown)return;
+  if(scrollY/(document.body.scrollHeight-innerHeight)>0.7 && !document.querySelector(".overlay.open")){
+    newsShown=true;sessionStorage.setItem("bk_news","1");openOv("newsOv");
+  }
+},{passive:true});
+function joinClub(e){
+  e.preventDefault();closeOv("newsOv");
+  toast("🫧","<b>Welcome to the Boba Club!</b> Check your inbox for a free-topping coupon.");
+  burst(innerWidth/2,innerHeight/2);
+}
+
+/* ================= DRINK MODAL ================= */
+let currentDrink=null,pickSweet="75%",pickIce="Regular",pickTop="Tapioca Pearls";
+function openDrink(d){
+  currentDrink=d;pickSweet="75%";pickIce="Regular";pickTop=d.popping?"Popping Boba":"Tapioca Pearls";
+  const m=document.getElementById("drinkModal");
+  m.style.setProperty("--ac",d.ac);
+  m.innerHTML=`
+    <button class="x" onclick="closeOv('drinkOv')" aria-label="Close">✕</button>
+    <div class="dm-grid">
+      <div class="dm-cup">${cupSVG(d.c)}</div>
+      <div>
+        <span class="dm-tag">${d.tag} · ${d.cat}</span>
+        <h3>${d.name}</h3>
+        <p>${d.desc}</p>
+        <div class="notes">${d.notes.map(n=>`<span>${n}</span>`).join("")}</div>
+        <div class="pick"><label>Sweetness</label><div class="opts" data-k="sweet">
+          ${["0%","25%","50%","75%","100%"].map(o=>`<button class="opt ${o===pickSweet?"on":""}">${o}</button>`).join("")}
+        </div></div>
+        <div class="pick"><label>Ice</label><div class="opts" data-k="ice">
+          ${["Less","Regular","Extra","Hot"].map(o=>`<button class="opt ${o===pickIce?"on":""}">${o}</button>`).join("")}
+        </div></div>
+        <div class="pick"><label>Topping (+₹40)</label><div class="opts" data-k="top">
+          ${["Tapioca Pearls","Popping Boba","Grass Jelly","Cheese Foam","Egg Pudding"].map(o=>`<button class="opt ${o===pickTop?"on":""}">${o}</button>`).join("")}
+        </div></div>
+        <div class="dm-foot">
+          <span class="dm-price">₹${d.price}</span>
+          <button class="btn" onclick="addToOrder(event)">Add to order 🧋</button>
+        </div>
+      </div>
+    </div>`;
+  m.querySelectorAll(".opts").forEach(g=>{
+    g.addEventListener("click",e=>{
+      const b=e.target.closest(".opt");if(!b)return;
+      g.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+      const v=b.textContent;
+      if(g.dataset.k==="sweet")pickSweet=v;else if(g.dataset.k==="ice")pickIce=v;else pickTop=v;
+    });
+  });
+  openOv("drinkOv");
+}
+
+/* ================= CART / DRAWER ================= */
+const cart=[];
+function addToOrder(e){
+  cart.push({name:currentDrink.name,meta:`${pickSweet} sweet · ${pickIce} ice · ${pickTop}`,price:currentDrink.price+40});
+  updateCart();closeOv("drinkOv");
+  toast("🧋",`<b>${currentDrink.name}</b> added to your order.`);
+  burst(e.clientX,e.clientY);
+}
+function updateCart(){
+  const badge=document.getElementById("cartBadge");
+  badge.textContent=cart.length;badge.classList.toggle("show",cart.length>0);
+  const host=document.getElementById("drawerItems");
+  if(!cart.length){host.innerHTML=`<div class="d-empty"><b>🧋</b>Your cup runneth empty.<br>Add something delightful.</div>`;}
+  else host.innerHTML=cart.map((it,i)=>
+    `<div class="d-item"><div><div class="n">${it.name}</div><div class="m">${it.meta}</div></div>
+     <div style="display:flex;align-items:center;gap:.4rem"><span class="p">₹${it.price}</span>
+     <button class="rm" aria-label="Remove ${it.name}" onclick="rmItem(${i})">✕</button></div></div>`).join("");
+  document.getElementById("dTotal").textContent="₹"+cart.reduce((s,i)=>s+i.price,0);
+}
+function rmItem(i){cart.splice(i,1);updateCart();}
+function openDrawer(){updateCart();document.getElementById("drawer").classList.add("open");}
+function closeDrawer(){document.getElementById("drawer").classList.remove("open");}
+function checkout(){
+  if(!cart.length){toast("👀","<b>Nothing in your cup yet</b> — add a drink first!");return;}
+  closeDrawer();burst(innerWidth-70,innerHeight-70);burst(innerWidth/2,innerHeight/3);
+  toast("🎉",`<b>Order dreamt!</b> ${cart.length} drink${cart.length>1?"s":""} — online ordering lands soon. Till then, Zomato has us.`);
+  cart.length=0;updateCart();
+}
+updateCart();
+
+/* ================= TOASTS (social proof + feedback) ================= */
+function toast(icon,html,life=5200){
+  const host=document.getElementById("toasts");
+  if(host.children.length>2)host.firstChild.remove();
+  const t=document.createElement("div");t.className="toast";
+  t.innerHTML=`<span style="font-size:1.2rem">${icon}</span><span>${html}</span>`;
+  host.appendChild(t);
+  setTimeout(()=>{t.classList.add("bye");setTimeout(()=>t.remove(),400);},life);
+}
+const SOCIAL=[
+  ["🧋","<b>Aarav in Bandra</b> just ordered a Brown Sugar Boba"],
+  ["🍵","<b>Meera in Colaba</b> is sipping a Strawberry Matcha"],
+  ["🥭","<b>Rohan in Andheri</b> grabbed the last Mango Popping Boba"],
+  ["☕","<b>Zoya in Lower Parel</b> ordered a Vietnamese Cold Brew"],
+  ["🟣","<b>Ishaan in Mulund</b> went full purple with a Taro Milk Tea"],
+  ["🫧","<b>Diya in Ghatkopar</b> added extra popping boba. Bold."]
+];
+let si=0;
+setTimeout(function social(){
+  if(!document.hidden)toast(...SOCIAL[si++%SOCIAL.length],4800);
+  setTimeout(social,14000+Math.random()*8000);
+},9000);
+
+/* ================= PEARL BURST CONFETTI ================= */
+function burst(x,y){
+  const colors=["#E0A458","#B79CE4","#9DC183","#F0949F","#F4E9D6"];
+  for(let i=0;i<16;i++){
+    const c=document.createElement("div");c.className="confetti";
+    const s=6+Math.random()*10;
+    c.style.cssText=`left:${x}px;top:${y}px;width:${s}px;height:${s}px;background:${colors[i%colors.length]}`;
+    c.style.setProperty("--cx",(Math.random()*260-130)+"px");
+    c.style.setProperty("--cy",(-60-Math.random()*260)+"px");
+    c.style.setProperty("--t",(1+Math.random()*.9)+"s");
+    document.body.appendChild(c);setTimeout(()=>c.remove(),2000);
+  }
+}
+</script>
+</body>
+</html>
