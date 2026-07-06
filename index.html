@@ -14,21 +14,22 @@
 <style>
 /* ============ TOKENS ============ */
 :root{
-  --ink:#151009;          /* warm espresso black */
-  --ink-2:#1F1710;        /* raised surface */
-  --ink-3:#2B2016;        /* card surface */
-  --cream:#F4E9D6;        /* milk foam */
-  --cream-dim:#C9B99F;    /* muted foam */
-  --caramel:#E0A458;      /* brown-sugar amber (hero accent) */
-  --caramel-deep:#9C6323;
-  --taro:#B79CE4;
-  --matcha:#9DC183;
-  --berry:#F0949F;
-  --line:rgba(244,233,214,.13);
+  /* Barako theme: cream/beige paper + coffee browns */
+  --ink:#F6EFE2;          /* page: warm cream paper */
+  --ink-2:#EFE4CF;        /* raised band: latte beige */
+  --ink-3:#FFFBF2;        /* card surface: milk white */
+  --cream:#2E2013;        /* text: dark roast */
+  --cream-dim:#7A6650;    /* muted text: mocha */
+  --caramel:#A96B24;      /* coffee-caramel accent */
+  --caramel-deep:#7A4A1D;
+  --taro:#8668C9;
+  --matcha:#5F8A48;
+  --berry:#D96B7D;
+  --line:rgba(90,62,38,.18);
   --display:"Fraunces", Georgia, "Times New Roman", serif;
   --sans:"Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
   --rad:22px;
-  --shadow:0 24px 60px -20px rgba(0,0,0,.65);
+  --shadow:0 24px 50px -18px rgba(87,58,32,.28);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;overflow-x:clip}
@@ -43,11 +44,11 @@ body{
 body::before{ /* ambient glows */
   content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
-    radial-gradient(900px 600px at 85% -10%, rgba(224,164,88,.14), transparent 60%),
-    radial-gradient(700px 500px at -10% 45%, rgba(183,156,228,.08), transparent 60%),
-    radial-gradient(800px 600px at 70% 110%, rgba(157,193,131,.07), transparent 60%);
+    radial-gradient(900px 600px at 85% -10%, rgba(169,107,36,.12), transparent 60%),
+    radial-gradient(700px 500px at -10% 45%, rgba(134,104,201,.07), transparent 60%),
+    radial-gradient(800px 600px at 70% 110%, rgba(95,138,72,.07), transparent 60%);
 }
-::selection{background:var(--caramel);color:var(--ink)}
+::selection{background:var(--caramel);color:#FFFBF2}
 img,svg{max-width:100%;display:block}
 a{color:inherit}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
@@ -64,7 +65,7 @@ h1,h2,h3{font-family:var(--display);font-weight:550;text-wrap:balance;line-heigh
 #ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
 .pearl{
   position:absolute;border-radius:50%;
-  background:radial-gradient(circle at 32% 30%, rgba(244,233,214,.35), rgba(244,233,214,.06) 55%, transparent 70%), var(--pc, rgba(224,164,88,.16));
+  background:radial-gradient(circle at 32% 30%, rgba(255,255,255,.55), rgba(255,255,255,.08) 55%, transparent 70%), var(--pc, rgba(169,107,36,.14));
   animation:drift var(--dur,26s) ease-in-out var(--del,0s) infinite alternate;
   filter:blur(.4px);
 }
@@ -78,7 +79,7 @@ nav{
   position:fixed;top:0;left:0;right:0;z-index:60;
   transition:background .35s, box-shadow .35s, backdrop-filter .35s;
 }
-nav.scrolled{background:rgba(21,16,9,.78);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--line)}
+nav.scrolled{background:rgba(246,239,226,.82);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;padding:1rem 0}
 .logo{font-family:var(--display);font-size:1.55rem;letter-spacing:.04em;text-decoration:none;display:flex;align-items:baseline;gap:.4rem}
 .logo b{font-weight:650}
@@ -91,9 +92,9 @@ nav.scrolled{background:rgba(21,16,9,.78);backdrop-filter:blur(14px);box-shadow:
   background:var(--caramel);color:var(--ink);font-weight:600;
   padding:.72rem 1.5rem;border-radius:999px;text-decoration:none;font-size:.92rem;
   transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
-  box-shadow:0 8px 24px -8px rgba(224,164,88,.5);
+  box-shadow:0 8px 24px -8px rgba(169,107,36,.45);
 }
-.btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 32px -8px rgba(224,164,88,.6)}
+.btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 32px -8px rgba(169,107,36,.55)}
 .btn.ghost{background:transparent;color:var(--cream);border:1px solid var(--line);box-shadow:none}
 .btn.ghost:hover{border-color:var(--caramel);color:var(--caramel)}
 @media (max-width:760px){.nav-links li:not(.keep){display:none}}
@@ -111,13 +112,13 @@ nav.scrolled{background:rgba(21,16,9,.78);backdrop-filter:blur(14px);box-shadow:
 .hero-meta div strong{font-family:var(--display);font-size:1.6rem;display:block;color:var(--cream)}
 .hero-meta div span{font-size:.8rem;color:var(--cream-dim);letter-spacing:.08em;text-transform:uppercase}
 .hero-cups{position:relative;height:560px}
-.cupf{position:absolute;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5));will-change:transform}
+.cupf{position:absolute;filter:drop-shadow(0 30px 40px rgba(87,58,32,.35));will-change:transform}
 .cupf svg{width:100%;height:auto}
 .cupf.c1{width:46%;left:24%;top:2%;z-index:3;animation:floaty 6s ease-in-out infinite}
 .cupf.c2{width:36%;left:0;top:26%;z-index:2;animation:floaty 7.5s ease-in-out -2s infinite}
 .cupf.c3{width:34%;right:0;top:34%;z-index:1;animation:floaty 8.5s ease-in-out -4s infinite}
 @keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-26px) rotate(2.5deg)}}
-.orbit{position:absolute;border:1px dashed rgba(224,164,88,.25);border-radius:50%;animation:spin 40s linear infinite}
+.orbit{position:absolute;border:1px dashed rgba(169,107,36,.35);border-radius:50%;animation:spin 40s linear infinite}
 .orbit.o1{width:120%;height:120%;left:-10%;top:-6%}
 .orbit.o2{width:88%;height:88%;left:6%;top:10%;animation-duration:60s;animation-direction:reverse}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -125,7 +126,7 @@ nav.scrolled{background:rgba(21,16,9,.78);backdrop-filter:blur(14px);box-shadow:
 @keyframes hint{0%,100%{opacity:.4;transform:translate(-50%,0)}50%{opacity:1;transform:translate(-50%,8px)}}
 
 /* ============ MARQUEE ============ */
-.marquee{border-block:1px solid var(--line);padding:1.1rem 0;overflow:hidden;background:rgba(31,23,16,.6)}
+.marquee{border-block:1px solid var(--line);padding:1.1rem 0;overflow:hidden;background:rgba(239,228,207,.7)}
 .mq-track{display:flex;gap:3rem;width:max-content;animation:mq 30s linear infinite}
 .mq-track span{font-family:var(--display);font-size:1.25rem;white-space:nowrap;color:var(--cream-dim);display:flex;align-items:center;gap:3rem}
 .mq-track span i{font-style:normal;color:var(--caramel);font-size:.8rem}
@@ -189,7 +190,7 @@ section{padding:6.5rem 0}
 .mi:nth-child(odd){animation-delay:.05s}.mi:nth-child(even){animation-delay:.12s}
 @keyframes miIn{to{opacity:1;transform:none}}
 .mi .nm{font-weight:500}
-.mi .dots{flex:1;border-bottom:1px dotted rgba(244,233,214,.25);transform:translateY(-4px)}
+.mi .dots{flex:1;border-bottom:1px dotted rgba(90,62,38,.35);transform:translateY(-4px)}
 .mi .pr{font-family:var(--display);color:var(--caramel);font-variant-numeric:tabular-nums}
 .mi .sub{display:block;font-size:.78rem;color:var(--cream-dim);font-weight:300}
 
@@ -227,7 +228,7 @@ footer.site a:hover{color:var(--caramel)}
 
 /* ============ MODALS / POPUPS ============ */
 .overlay{
-  position:fixed;inset:0;z-index:90;background:rgba(12,9,5,.72);backdrop-filter:blur(8px);
+  position:fixed;inset:0;z-index:90;background:rgba(46,32,19,.5);backdrop-filter:blur(8px);
   display:grid;place-items:center;padding:1.2rem;
   opacity:0;pointer-events:none;transition:opacity .35s;
 }
@@ -277,7 +278,7 @@ footer.site a:hover{color:var(--caramel)}
   position:fixed;top:0;right:0;bottom:0;width:min(420px,94vw);z-index:95;
   background:var(--ink-2);border-left:1px solid var(--line);
   transform:translateX(105%);transition:transform .45s cubic-bezier(.22,1,.36,1);
-  display:flex;flex-direction:column;box-shadow:-30px 0 80px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;box-shadow:-30px 0 80px rgba(87,58,32,.3);
 }
 .drawer.open{transform:none}
 .drawer header{padding:1.6rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
@@ -299,10 +300,11 @@ footer.site a:hover{color:var(--caramel)}
 .fab{
   position:fixed;right:1.4rem;bottom:1.4rem;z-index:70;
   width:62px;height:62px;border-radius:50%;background:var(--caramel);color:var(--ink);
-  display:grid;place-items:center;font-size:1.5rem;box-shadow:0 14px 34px -6px rgba(224,164,88,.55);
+  display:grid;place-items:center;font-size:1.5rem;
   transition:transform .3s cubic-bezier(.34,1.56,.64,1);
   animation:fabPulse 3s ease-in-out infinite;
 }
+.fab{box-shadow:0 14px 34px -6px rgba(169,107,36,.5)}
 .fab:hover{transform:scale(1.12) rotate(-8deg)}
 .fab .badge{
   position:absolute;top:-4px;right:-4px;min-width:24px;height:24px;border-radius:999px;
@@ -310,7 +312,7 @@ footer.site a:hover{color:var(--caramel)}
   display:grid;place-items:center;padding:0 .35rem;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
 }
 .fab .badge.show{transform:scale(1)}
-@keyframes fabPulse{0%,100%{box-shadow:0 14px 34px -6px rgba(224,164,88,.55)}50%{box-shadow:0 14px 44px 2px rgba(224,164,88,.4)}}
+@keyframes fabPulse{0%,100%{box-shadow:0 14px 34px -6px rgba(169,107,36,.5)}50%{box-shadow:0 14px 44px 2px rgba(169,107,36,.35)}}
 
 /* toasts */
 #toasts{position:fixed;left:1.4rem;bottom:1.4rem;z-index:80;display:flex;flex-direction:column;gap:.7rem;max-width:330px}
@@ -410,7 +412,7 @@ footer.site a:hover{color:var(--caramel)}
 </section>
 
 <!-- ============ STORY ============ -->
-<section id="story" style="background:rgba(31,23,16,.45)">
+<section id="story" style="background:rgba(213,190,155,.28)">
   <div class="wrap story-grid">
     <div class="story rv">
       <p class="eyebrow">The Barako Story</p>
@@ -444,7 +446,7 @@ footer.site a:hover{color:var(--caramel)}
 </section>
 
 <!-- ============ TOPPINGS ============ -->
-<section style="padding-block:4rem;background:rgba(31,23,16,.45)">
+<section style="padding-block:4rem;background:rgba(213,190,155,.28)">
   <div class="wrap rv" style="text-align:center">
     <p class="eyebrow" style="justify-content:center">Make it yours</p>
     <h2 style="font-size:clamp(1.8rem,3.6vw,2.6rem);margin:1rem 0 2.2rem">Toppings worth chewing on</h2>
@@ -579,51 +581,51 @@ footer.site a:hover{color:var(--caramel)}
 <script>
 /* ================= DATA ================= */
 const DRINKS=[
-  {id:"bsb",name:"Brown Sugar Boba",cat:"Milk Teas",tag:"Bestseller",price:280,ac:"#E0A458",
+  {id:"bsb",name:"Brown Sugar Boba",cat:"Milk Teas",tag:"Bestseller",price:280,ac:"#A96B24",
    c:{liq1:"#8C5A2B",liq2:"#3E2A1C",foam:"#F2E7D8",pearl:"#241207",stripes:true},
    desc:"Slow-caramelised brown sugar syrup painted up the cup in tiger stripes, fresh milk, and warm tapioca pearls cooked in the same syrup.",
    notes:["Caramel","Smoky","Creamy"]},
-  {id:"taro",name:"Taro Milk Tea",cat:"Milk Teas",tag:"Cult Fave",price:290,ac:"#B79CE4",
+  {id:"taro",name:"Taro Milk Tea",cat:"Milk Teas",tag:"Cult Fave",price:290,ac:"#7C5EC2",
    c:{liq1:"#9B7FD4",liq2:"#6C4FA1",foam:"#EFE6FF",pearl:"#241207"},
    desc:"Real taro root blended silky-smooth into creamy milk tea — nutty, subtly sweet, and unapologetically purple.",
    notes:["Nutty","Velvety","Vanilla"]},
-  {id:"matcha",name:"Matcha Milk Tea",cat:"Milk Teas",tag:"Ceremonial",price:300,ac:"#9DC183",
+  {id:"matcha",name:"Matcha Milk Tea",cat:"Milk Teas",tag:"Ceremonial",price:300,ac:"#587F42",
    c:{liq1:"#8AAF6B",liq2:"#4E6B3B",foam:"#F0F5E6",pearl:"#241207"},
    desc:"Stone-ground Japanese matcha whisked into chilled milk, mildly sweetened. Earthy, grassy, gorgeous.",
    notes:["Earthy","Grassy","Umami"]},
-  {id:"sberry",name:"Strawberry Matcha",cat:"Milk Teas",tag:"Photogenic",price:320,ac:"#F0949F",
+  {id:"sberry",name:"Strawberry Matcha",cat:"Milk Teas",tag:"Photogenic",price:320,ac:"#C7566B",
    c:{liq1:"#8AAF6B",liq2:"#E76F7E",foam:"#FBE9EC",pearl:"#7A2432"},
    desc:"A layered stunner — crushed strawberries below, cold milk in the middle, vibrant matcha on top. Stir, snap, sip.",
    notes:["Berry","Fresh","Earthy"]},
-  {id:"okinawa",name:"Okinawa Milk Tea",cat:"Milk Teas",tag:"Signature",price:270,ac:"#D2955F",
+  {id:"okinawa",name:"Okinawa Milk Tea",cat:"Milk Teas",tag:"Signature",price:270,ac:"#9A5F28",
    c:{liq1:"#A8713D",liq2:"#5C3A1E",foam:"#F2E7D8",pearl:"#241207"},
    desc:"A highly addictive roasted brown-sugar milk tea inspired by the Okinawa islands of Japan. Toasty and toffee-like.",
    notes:["Toffee","Roasty","Smooth"]},
-  {id:"classic",name:"Classic Pearl Milk Tea",cat:"Milk Teas",tag:"OG",price:250,ac:"#C9A87C",
+  {id:"classic",name:"Classic Pearl Milk Tea",cat:"Milk Teas",tag:"OG",price:250,ac:"#7E6238",
    c:{liq1:"#C9A87C",liq2:"#8A6B45",foam:"#F2E7D8",pearl:"#241207"},
    desc:"Where it all began — robust black tea, fresh milk, and a generous scoop of chewy pearls. The classic, done right.",
    notes:["Malty","Balanced","Classic"]},
-  {id:"passion",name:"Passionfruit Green Tea",cat:"Fruit Teas",tag:"Zingy",price:260,ac:"#F2C14E",
+  {id:"passion",name:"Passionfruit Green Tea",cat:"Fruit Teas",tag:"Zingy",price:260,ac:"#A8811A",
    c:{liq1:"#F2C14E",liq2:"#D98E2B",foam:"transparent",pearl:"#F2C14E",popping:true},
    desc:"Jasmine green tea shaken hard with real passionfruit pulp and golden popping boba that bursts citrus with every chew.",
    notes:["Tangy","Tropical","Bright"]},
-  {id:"lychee",name:"Lychee Burst",cat:"Fruit Teas",tag:"Refresher",price:270,ac:"#F0B9C4",
+  {id:"lychee",name:"Lychee Burst",cat:"Fruit Teas",tag:"Refresher",price:270,ac:"#C05A76",
    c:{liq1:"#F5D4DB",liq2:"#E790A4",foam:"transparent",pearl:"#FBE9EC",popping:true},
    desc:"Fragrant lychee over chilled jasmine tea with lychee popping pearls and a squeeze of lime. Summer in a cup.",
    notes:["Floral","Juicy","Cooling"]},
-  {id:"peach",name:"Peach Oolong",cat:"Fruit Teas",tag:"Delicate",price:260,ac:"#F3A26D",
+  {id:"peach",name:"Peach Oolong",cat:"Fruit Teas",tag:"Delicate",price:260,ac:"#B26430",
    c:{liq1:"#F5B983",liq2:"#DD7E3E",foam:"transparent",pearl:"#B85C22"},
    desc:"White peach and roasted oolong — a soft, fragrant pairing finished with peach jelly ribbons.",
    notes:["Stone fruit","Roasty","Silky"]},
-  {id:"mango",name:"Mango Popping Boba",cat:"Fruit Teas",tag:"Seasonal",price:280,ac:"#F5C33B",
+  {id:"mango",name:"Mango Popping Boba",cat:"Fruit Teas",tag:"Seasonal",price:280,ac:"#A87F10",
    c:{liq1:"#F8D45C",liq2:"#E89B1C",foam:"transparent",pearl:"#F5C33B",popping:true},
    desc:"Alphonso season, bottled — thick mango purée over green tea with mango popping boba. Aam aadmi approved.",
    notes:["Alphonso","Lush","Sunny"]},
-  {id:"vietcb",name:"Vietnamese Cold Brew",cat:"Coffee",tag:"Strong",price:240,ac:"#A5764A",
+  {id:"vietcb",name:"Vietnamese Cold Brew",cat:"Coffee",tag:"Strong",price:240,ac:"#6B4423",
    c:{liq1:"#5C3A1E",liq2:"#2B1A0D",foam:"#E8D9BC",pearl:"#241207"},
    desc:"18-hour cold brew over condensed milk — barako by name, barako by nature. Not for the faint-hearted.",
    notes:["Bold","Chocolatey","Sweet kick"]},
-  {id:"spanish",name:"Spanish Latte",cat:"Coffee",tag:"Smooth",price:260,ac:"#C9A87C",
+  {id:"spanish",name:"Spanish Latte",cat:"Coffee",tag:"Smooth",price:260,ac:"#8A6B45",
    c:{liq1:"#B98A55",liq2:"#6B4423",foam:"#F2E7D8",pearl:"#241207"},
    desc:"Double espresso folded into sweetened milk, served over ice. Dangerously drinkable.",
    notes:["Sweet","Rich","Rounded"]}
@@ -707,28 +709,28 @@ function cupSVG(c,opts={}){
   <rect x="112" y="8" width="16" height="96" rx="8" transform="rotate(9 120 56)" fill="${c.pearl==='#241207'?'#E0A458':c.pearl}" opacity=".9"/>
   <rect x="112" y="8" width="7" height="96" rx="3.5" transform="rotate(9 120 56)" fill="rgba(255,255,255,.28)"/>
   <!-- dome lid -->
-  <path d="M54 84 Q100 44 146 84 Z" fill="rgba(244,233,214,.16)" stroke="rgba(244,233,214,.45)" stroke-width="2"/>
+  <path d="M54 84 Q100 44 146 84 Z" fill="rgba(255,255,255,.45)" stroke="rgba(74,48,28,.5)" stroke-width="2"/>
   <!-- cup body -->
-  <path d="M58 84 L142 84 L133 268 Q100 282 67 268 Z" fill="rgba(244,233,214,.07)" stroke="rgba(244,233,214,.4)" stroke-width="2.5"/>
+  <path d="M58 84 L142 84 L133 268 Q100 282 67 268 Z" fill="rgba(255,255,255,.35)" stroke="rgba(74,48,28,.45)" stroke-width="2.5"/>
   <g clip-path="url(#cp${g})">
     <rect x="50" y="98" width="100" height="190" fill="url(#lg${g})"/>
     ${stripes}${pearls}
   </g>
   ${foam}
   <!-- glass highlight -->
-  <path d="M70 100 Q66 180 72 255" stroke="rgba(255,255,255,.25)" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M70 100 Q66 180 72 255" stroke="rgba(255,255,255,.5)" stroke-width="7" fill="none" stroke-linecap="round"/>
   <!-- lid rim -->
-  <rect x="50" y="80" width="100" height="8" rx="4" fill="rgba(244,233,214,.5)"/>
+  <rect x="50" y="80" width="100" height="8" rx="4" fill="rgba(74,48,28,.4)"/>
   <!-- steam wisps -->
-  <path class="steam" d="M84 30 q6 -10 0 -18" stroke="rgba(244,233,214,.5)" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <path class="steam" style="animation-delay:-1.5s" d="M66 38 q6 -10 0 -18" stroke="rgba(244,233,214,.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="steam" d="M84 30 q6 -10 0 -18" stroke="rgba(122,90,58,.55)" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="steam" style="animation-delay:-1.5s" d="M66 38 q6 -10 0 -18" stroke="rgba(122,90,58,.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
 </svg>`;
 }
 
 /* ================= AMBIENT PEARLS ================= */
 (function(){
   const host=document.getElementById("ambient");
-  const hues=["rgba(224,164,88,.16)","rgba(183,156,228,.14)","rgba(157,193,131,.13)","rgba(240,148,159,.12)","rgba(244,233,214,.09)"];
+  const hues=["rgba(169,107,36,.15)","rgba(134,104,201,.13)","rgba(95,138,72,.12)","rgba(217,107,125,.11)","rgba(87,58,32,.09)"];
   for(let i=0;i<26;i++){
     const p=document.createElement("div");p.className="pearl";
     const s=6+Math.random()*26;
@@ -945,7 +947,7 @@ setTimeout(function social(){
 
 /* ================= PEARL BURST CONFETTI ================= */
 function burst(x,y){
-  const colors=["#E0A458","#B79CE4","#9DC183","#F0949F","#F4E9D6"];
+  const colors=["#A96B24","#8668C9","#5F8A48","#D96B7D","#7A4A1D"];
   for(let i=0;i<16;i++){
     const c=document.createElement("div");c.className="confetti";
     const s=6+Math.random()*10;
