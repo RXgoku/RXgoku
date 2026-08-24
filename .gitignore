@@ -1,0 +1,16 @@
+# scrollcraft secrets and build output
+.env
+.env.local
+*.key
+builds/
+lab/
+out/
+dist/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# scrollcraft workspace (build registry + generated pages)
+/scrollcraft/
