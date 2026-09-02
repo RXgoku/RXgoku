@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{canonical}}">
+<meta name="theme-color" content="#FBF1EC">
+<meta property="og:type" content="business.business">
+<meta property="og:site_name" content="Barako Bubble Tea &amp; Coffee">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{siteUrl}}/assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="{{root}}assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="{{root}}assets/fonts/outfit-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{root}}assets/fonts/geist-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{root}}assets/css/tokens.css">
+<link rel="stylesheet" href="{{root}}assets/css/stores.css">
+<!-- seo:jsonld -->
+<!-- /seo:jsonld -->
+</head>
+<body class="g-blush">
+<a class="skip" href="#main">Skip to content</a>
+<header class="doc-bar">
+  <a class="wordmark" href="{{root}}">Barako</a>
+  <nav class="doc-nav" aria-label="Site">
+    <a href="{{root}}stores/">All stores</a>
+    <a href="{{root}}#menu">Menu</a>
+    <a class="order" href="{{swiggy}}" rel="noopener">Order</a>
+  </nav>
+</header>
+<main id="main" class="doc wrap">
+  <nav aria-label="Breadcrumb"><ol class="crumbs" role="list"><li><a href="{{root}}">Barako</a></li><li><a href="{{root}}stores/">Stores</a></li><li aria-current="page">{{name}}</li></ol></nav>
+  <div class="doc-head">
+    <p class="eyebrow soft">Barako Bubble Tea &amp; Coffee</p>
+    <h1>{{name}}</h1>
+    <p class="lede">{{addressSentence}} Boba, ceremonial matcha, a live Nongshim ramen bar, and bao and dim sum that are all vegetarian.</p>
+  </div>
+
+  <section class="facts" aria-label="The essentials">
+    <div class="fact">
+      <h2>Where</h2>
+      <p class="big">{{addressBig}}</p>
+      <p>{{addressSmall}}</p>
+      <div class="actions"><a class="btn" href="{{mapsUrl}}" rel="noopener">Open in Google Maps</a></div>
+    </div>
+    <div class="fact">
+      <h2>When</h2>
+      {{hoursHtml}}
+    </div>
+    <div class="fact">
+      <h2>What</h2>
+      <ul role="list">{{menuShort}}</ul>
+      <p class="note">Large cups run ₹250 to ₹320. Ramen and boba combos start at ₹290. About ₹450 for two.</p>
+    </div>
+    <div class="fact">
+      <h2>Order</h2>
+      <p class="big">Delivery from this room.</p>
+      <p>Item prices are live on the apps, so they are always current.</p>
+      <div class="actions"><a class="btn" href="{{swiggy}}" rel="noopener">Swiggy</a><a class="btn btn-ghost" href="{{zomato}}" rel="noopener">Zomato</a></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>About this room</h2>
+    <p class="prose">{{intro}}</p>
+    <p class="prose">Like every Barako, it does <a href="{{root}}#menu">the whole menu</a>: handcrafted boba, ceremonial Japanese matcha whisked to order, coffee, the live ramen bar, and a steamer of vegetarian bao, momos and dumplings. Sit as long as you like.</p>
+  </section>
+
+  <section class="section">
+    <h2>On the menu</h2>
+    <ul class="menu-list" role="list">{{menuFull}}</ul>
+  </section>
+
+  <section class="section">
+    <h2>Other rooms in {{zoneName}}</h2>
+    <ul class="store-list" role="list">{{siblings}}</ul>
+    <p class="prose"><a href="{{root}}stores/">All nine stores</a>, grouped by zone.</p>
+  </section>
+</main>
+<footer class="doc-foot">
+  <p><strong>Barako Bubble Tea &amp; Coffee.</strong> Nine cafes in Mumbai.</p>
+  <ul role="list"><li><a href="{{instagramUrl}}" rel="noopener">Instagram, @barako.bubbletea</a></li><li><a href="{{root}}">Home</a></li></ul>
+</footer>
+</body>
+</html>

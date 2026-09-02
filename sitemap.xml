@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://barako.example/</loc><lastmod>2026-09-02</lastmod><priority>1.0</priority></url>
+  <url><loc>https://barako.example/stores/</loc><lastmod>2026-09-02</lastmod><priority>0.8</priority></url>
+  <url><loc>https://barako.example/stores/colaba/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/lower-parel/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/bandra-west/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/andheri-west/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/malad-west/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/borivali-west/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/ghatkopar-east/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/kurla/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+  <url><loc>https://barako.example/stores/mulund-west/</loc><lastmod>2026-09-02</lastmod><priority>0.7</priority></url>
+</urlset>

@@ -1,0 +1,17 @@
+{
+  "name": "barako-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketing site for Barako Bubble Tea & Coffee. Static HTML, CSS and vanilla JS.",
+  "type": "module",
+  "scripts": {
+    "stores": "node tools/stores.mjs",
+    "seo": "node tools/seo.mjs",
+    "build": "node tools/build.mjs",
+    "verify": "node tools/verify.mjs",
+    "serve": "node tools/serve.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "meta": {
+    "siteUrl": "https://barako.example",
+    "brand": "Barako Bubble Tea & Coffee",
+    "shortName": "Barako",
+    "tagline": "Where comfort meets cozy.",
+    "description": "Barako Bubble Tea & Coffee is a chain of nine cafes in Mumbai. Handcrafted boba, ceremonial Japanese matcha, a live Korean ramen bar and a fully vegetarian bao and dim sum menu.",
+    "instagram": "barako.bubbletea",
+    "instagramUrl": "https://www.instagram.com/barako.bubbletea/",
+    "ordering": {
+      "swiggy": "https://www.swiggy.com/search?query=Barako%20Bubble%20Tea",
+      "zomato": "https://www.zomato.com/mumbai/restaurants?q=Barako%20Bubble%20Tea"
+    },
+    "pricing": {
+      "largeCup": { "min": 250, "max": 320, "currency": "INR", "label": "Large cup" },
+      "forTwo": { "approx": 450, "currency": "INR", "label": "About this for two" },
+      "combos": { "from": 290, "currency": "INR", "label": "Ramen and boba combos from" },
+      "priceRange": "₹250–₹450"
+    },
+    "hours": {
+      "note": "Published only as a range. Most stores open between 8:00 and 9:30 AM and close between 12:00 and 1:00 AM. Some suburban stores run 24 hours. Per-store hours are not yet confirmed.",
+      "opensBetween": ["08:00", "09:30"],
+      "closesBetween": ["00:00", "01:00"],
+      "some24h": true
+    },
+    "servesCuisine": ["Bubble tea", "Coffee", "Matcha", "Korean ramen", "Vegetarian bao and dim sum"],
+    "menu": [
+      { "id": "milk-teas", "name": "Milk teas", "description": "Brown sugar, taro, classic. Pearls cooked through the day." },
+      { "id": "fruit-teas", "name": "Fruit teas and sodas", "description": "Lychee, butterfly pea, strawberry. Cold, sharp, fizzy if you want." },
+      { "id": "matcha", "name": "Ceremonial matcha", "description": "Japanese ceremonial grade, whisked to order. Hot, iced, or as a latte." },
+      { "id": "coffee", "name": "Coffee", "description": "It is in the name. Espresso drinks, hot and cold." },
+      { "id": "ramen", "name": "Ramen bar", "description": "A Nongshim pack, cooked live. Egg, cheese, greens, chicken, chilli oil. Your call." },
+      { "id": "bao", "name": "Bao and dim sum", "description": "Bao, momos, dumplings. Steamed, and every one of them vegetarian." }
+    ]
+  },
+  "zones": [
+    { "id": "south", "name": "South Mumbai" },
+    { "id": "west", "name": "Western suburbs" },
+    { "id": "east", "name": "Central and eastern suburbs" }
+  ],
+  "stores": [
+    {
+      "slug": "colaba",
+      "name": "Colaba",
+      "zone": "south",
+      "address": { "landmark": "Mansion", "street": "Mandlik Road", "locality": "Colaba", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 52, "y": 96 },
+      "mapsQuery": "Barako Bubble Tea Mandlik Road Colaba Mumbai",
+      "intro": "Mandlik Road runs off Colaba Causeway, a short walk from Regal Cinema and the Gateway crowds. Colaba has never been short of places to sit, but most of them want the table back. This room does not. It is the one to duck into when the Causeway has finished with you and you still have an hour before the train."
+    },
+    {
+      "slug": "lower-parel",
+      "name": "Lower Parel",
+      "zone": "south",
+      "address": { "landmark": "Opposite High Street Phoenix", "street": null, "locality": "Lower Parel", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 50, "y": 78 },
+      "mapsQuery": "Barako Bubble Tea Lower Parel opposite High Street Phoenix Mumbai",
+      "intro": "Lower Parel is old mill land turned into glass towers, and the towers empty out late. The store sits opposite High Street Phoenix, across the road from the mall rather than inside it. That means no mall closing time deciding when you leave, and a boba to carry across to the cinema if you are going that way."
+    },
+    {
+      "slug": "bandra-west",
+      "name": "Bandra West",
+      "zone": "west",
+      "address": { "landmark": "Pali Naka", "street": null, "locality": "Bandra West", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 44, "y": 62 },
+      "mapsQuery": "Barako Bubble Tea Pali Naka Bandra West Mumbai",
+      "intro": "Pali Naka is the junction where Pali Hill meets the rest of Bandra, and it already has more cafes per metre than anywhere in the city. The Barako here earns its spot by doing the thing the others do not: a ramen bar open when the brunch places have stacked their chairs, and a matcha that is whisked rather than poured from a pump."
+    },
+    {
+      "slug": "andheri-west",
+      "name": "Andheri West",
+      "zone": "west",
+      "address": { "landmark": "Oshiwara", "street": null, "locality": "Andheri West", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 42, "y": 46 },
+      "mapsQuery": "Barako Bubble Tea Oshiwara Andheri West Mumbai",
+      "intro": "Oshiwara keeps television and film hours, which is to say no hours at all. Edit suites, production offices and Lokhandwala a few minutes up the road mean there is always someone finishing a shift at a time nobody else calls dinner. The Andheri West room is built for exactly that person: a hot bowl, a cold cup, and nobody looking at their watch."
+    },
+    {
+      "slug": "malad-west",
+      "name": "Malad West",
+      "zone": "west",
+      "address": { "landmark": null, "street": null, "locality": "Malad West", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 41, "y": 34 },
+      "mapsQuery": "Barako Bubble Tea Malad West Mumbai",
+      "intro": "Malad West is where a large part of the city actually lives, between the Link Road traffic and the office parks at Mindspace. It is a neighbourhood of families and long commutes, and a cafe here has to be worth staying in rather than just passing through. This one is: booths for the family, a counter for the person who came alone with a laptop."
+    },
+    {
+      "slug": "borivali-west",
+      "name": "Borivali West",
+      "zone": "west",
+      "address": { "landmark": "IC Colony", "street": null, "locality": "Borivali West", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 40, "y": 20 },
+      "mapsQuery": "Barako Bubble Tea IC Colony Borivali West Mumbai",
+      "intro": "IC Colony is one of the quieter corners of Borivali, low-rise and tree-lined, with the sea on one side and the national park a few kilometres east. It is the sort of place people walk in the evening. The Barako here is the stop on that walk: a cup to carry, or a bao and a booth if the walk was really an excuse."
+    },
+    {
+      "slug": "ghatkopar-east",
+      "name": "Ghatkopar East",
+      "zone": "east",
+      "address": { "landmark": null, "street": null, "locality": "Ghatkopar East", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 68, "y": 56 },
+      "mapsQuery": "Barako Bubble Tea Ghatkopar East Mumbai",
+      "intro": "Ghatkopar East is a station neighbourhood on the Central line, dense and residential, with a Metro interchange that pulls in half the eastern suburbs. Most of what is here is built for people in a hurry. The Barako is built for the ones who got off the train and decided not to go straight home."
+    },
+    {
+      "slug": "kurla",
+      "name": "Kurla",
+      "zone": "east",
+      "address": { "landmark": "Phoenix Marketcity", "street": null, "locality": "Kurla", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 62, "y": 60 },
+      "mapsQuery": "Barako Bubble Tea Phoenix Marketcity Kurla Mumbai",
+      "intro": "Phoenix Marketcity in Kurla is one of the largest malls in the country, and a mall day is long, loud and hard on the feet. This is the Barako to sit down in halfway through. It is inside the mall, so expect its opening and closing to follow the mall's, and check the store page for the confirmed hours before making it the plan."
+    },
+    {
+      "slug": "mulund-west",
+      "name": "Mulund West",
+      "zone": "east",
+      "address": { "landmark": "Silver Birch, Vasant Garden", "street": null, "locality": "Mulund West", "city": "Mumbai", "region": "Maharashtra", "postalCode": null, "country": "IN" },
+      "hours": null,
+      "is24h": null,
+      "phone": null,
+      "geo": null,
+      "map": { "x": 74, "y": 30 },
+      "mapsQuery": "Barako Bubble Tea Silver Birch Vasant Garden Mulund West Mumbai",
+      "intro": "Mulund West sits at the top of the Central line with the Yeoor hills behind it, and Vasant Garden is a residential pocket where the evening happens on foot. The Barako here is in Silver Birch. It is the northernmost room in the chain, and the one where a cup at eleven at night still feels like a neighbourhood thing rather than a night out."
+    }
+  ]
+}
