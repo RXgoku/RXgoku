@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Last Circle</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+      #status { position: fixed; top: 8px; left: 8px; color: #fff; font: 14px monospace; z-index: 1; }
+      #overlay {
+        position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
+        min-width: 280px; max-width: calc(100vw - 32px); box-sizing: border-box;
+        padding: 20px 24px; border-radius: 10px; background: #000000cc; color: #fff;
+        font: 15px monospace; text-align: center; line-height: 1.5;
+      }
+      /* Lobby panel sits to the left so your own character (screen centre) stays visible. */
+      #overlay.side { left: 16px; transform: translate(0, -50%); max-width: min(360px, calc(100vw - 32px)); }
+      #overlay.corner { top: auto; bottom: 190px; transform: translate(-50%, 0); padding: 8px 14px; min-width: 0; }
+      #overlay h1 { margin: 0 0 8px; font-size: 24px; }
+      #overlay button {
+        margin-top: 12px; padding: 10px 22px; border: 0; border-radius: 6px; font: bold 16px monospace;
+        background: #2ecc71; color: #000; cursor: pointer;
+      }
+      #overlay button:disabled { background: #555; color: #aaa; cursor: default; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="status">Connecting…</div>
+    <div id="overlay" hidden>
+      <h1 id="overlay-title"></h1>
+      <div id="overlay-body"></div>
+      <button id="start-btn" hidden>Start match</button>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
