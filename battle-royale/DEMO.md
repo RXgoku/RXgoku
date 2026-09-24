@@ -5,7 +5,7 @@ A 60-second live demo in which the audience joins your match from their laptops.
 ## The day before
 
 - [ ] **Deploy** (see README → Deploy) and open the link from a different network, e.g. your phone's hotspot.
-- [ ] In Render → your service → **Environment**, set `ZONE_TIME_SCALE` to `3`. A match then lasts about 70 seconds, which is what the timings below assume.
+- `ZONE_TIME_SCALE` is already `3` in `render.yaml`, so matches last about 70 seconds, which is what the timings below assume. If you changed it in the Render dashboard, set it back to `3`.
 - `AUTO_START_PLAYERS` is already `20` (a full room), so audience members joining won't start the match before you press Start.
 - [ ] **Make a QR code for the link.** In Chrome, open your game URL, click the share icon in the address bar, choose **Create QR code**, then **Download**. Put it on a slide.
 - [ ] **Record a backup video** of yourself running the whole script (Windows: `Win+G`, Mac: `Cmd+Shift+5`, or OBS). If the Wi-Fi dies, you play this and narrate the same lines.
