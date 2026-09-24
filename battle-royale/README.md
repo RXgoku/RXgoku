@@ -125,7 +125,7 @@ It runs as a single free web service (`npm run build`, then `npm start`), with `
 | Setting | Where | Default | Effect |
 |---|---|---|---|
 | `BOTS` | env var | `10` | Bots fill each match up to this many players (`0` = off) |
-| `ZONE_TIME_SCALE` | env var | `1` | Speeds up the zone. `1` ≈ 4-minute match, `3` ≈ 80 seconds |
+| `ZONE_TIME_SCALE` | env var | `1` locally, `3` on Render | Speeds up the zone. `1` ≈ 4-minute match, `3` ≈ 70 seconds |
 | `PORT` | env var | `2567` | Server port |
 | `LOADOUT_DROP_PHASE` | `server/src/constants.js` | `2` | Zone phase when loadout crates land (`0` = spawn with full loadout) |
 | `MIN_PLAYERS`, `AUTO_START_PLAYERS` | `server/src/constants.js` | `2`, `20` | Lobby start rules |

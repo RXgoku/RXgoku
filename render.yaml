@@ -12,7 +12,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: ZONE_TIME_SCALE # 1 = ~4 minute match; raise it for shorter demo matches
-        value: "1"
+      - key: ZONE_TIME_SCALE # 3 = ~70 second matches for demos; 1 = full ~4 minute match
+        value: "3"
       - key: BOTS # bots fill each match up to this many players; 0 disables
         value: "10"
