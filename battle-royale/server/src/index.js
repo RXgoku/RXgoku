@@ -12,6 +12,7 @@ const server = new Server({
   transport: new WebSocketTransport(),
   // Serves the built client so one deploy hosts both game and server.
   express: (app) => {
+    app.get("/health", (_req, res) => res.send("ok")); // hosting health check
     app.use(express.static(clientDist));
   },
 });
