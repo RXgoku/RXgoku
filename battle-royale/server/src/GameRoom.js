@@ -1,14 +1,16 @@
 import { Room } from "@colyseus/core";
-import { GameState, Player, Pickup } from "./schema.js";
+import { GameState, Player, Pickup, Zone } from "./schema.js";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, TICK_MS, MAX_INPUT_DT, applyMove,
   MAX_HEALTH, BULLET_RADIUS, RESPAWN_MS, PICKUP_COUNT, PICKUP_RANGE,
 } from "./constants.js";
 import { WEAPONS, randomPickupWeapon } from "./weapons.js";
+import { ZoneController } from "./zone.js";
 
 const COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#ecf0f1"];
 const MAX_QUEUED_INPUTS = 60;
 const MAX_TIME_BUDGET = 0.25; // seconds of movement a client may bank
+const ZONE_RESTART_MS = 10000; // temporary loop until the match flow (lobby/winner) exists
 
 export class GameRoom extends Room {
   maxClients = 20;
@@ -17,6 +19,10 @@ export class GameRoom extends Room {
     this.setState(new GameState());
     this.state.mapWidth = MAP_WIDTH;
     this.state.mapHeight = MAP_HEIGHT;
+    this.state.zone = new Zone();
+    this.zone = new ZoneController(this.state.zone);
+    this.zone.start(this.clock.currentTime);
+    this.clock.setInterval(() => this.zoneDamage(), 1000);
     this.sessions = new Map(); // sessionId -> { inputs: [], budget, lastShot, reloadTimer }
     this.bullets = new Map();  // id -> { owner, x, y, vx, vy, damage, expires }; server-only, clients get events
     this.nextBulletId = 1;
@@ -76,8 +82,9 @@ export class GameRoom extends Room {
   }
 
   respawn(player) {
-    player.x = randomCoord(MAP_WIDTH);
-    player.y = randomCoord(MAP_HEIGHT);
+    const spot = this.zone.randomPointInside(PLAYER_RADIUS);
+    player.x = spot.x;
+    player.y = spot.y;
     player.health = MAX_HEALTH;
     player.alive = true;
     player.slot = 0;
@@ -207,6 +214,26 @@ export class GameRoom extends Room {
   update(deltaMs) {
     this.movePlayers(deltaMs);
     this.moveBullets(deltaMs);
+    this.updateZone();
+  }
+
+  updateZone() {
+    const now = this.clock.currentTime;
+    if (this.zone.update(now) && !this.zoneRestartAt) {
+      this.zoneRestartAt = now + ZONE_RESTART_MS;
+    }
+    if (this.zoneRestartAt && now >= this.zoneRestartAt) {
+      this.zoneRestartAt = null;
+      this.zone = new ZoneController(this.state.zone);
+      this.zone.start(now);
+    }
+  }
+
+  zoneDamage() {
+    const dps = this.state.zone.dps;
+    this.state.players.forEach((player, id) => {
+      if (player.alive && this.zone.isOutside(player.x, player.y)) this.damage(player, id, dps, "The zone");
+    });
   }
 
   movePlayers(deltaMs) {
@@ -238,7 +265,7 @@ export class GameRoom extends Room {
       // Test the whole segment travelled this tick, so fast bullets can't skip past a player.
       const victim = this.findHit(b, x0, y0);
       if (victim) {
-        this.damage(victim.player, victim.id, b.owner, b.damage);
+        this.damage(victim.player, victim.id, b.damage, this.state.players.get(b.owner)?.name ?? "?");
         this.endBullet(id, b.x, b.y, true);
       } else if (now >= b.expires || b.x < 0 || b.y < 0 || b.x > MAP_WIDTH || b.y > MAP_HEIGHT) {
         this.endBullet(id, b.x, b.y, false);
@@ -256,7 +283,7 @@ export class GameRoom extends Room {
     return best;
   }
 
-  damage(player, victimId, attackerId, amount) {
+  damage(player, victimId, amount, killerName) {
     if (!player.alive) return; // several shotgun pellets can land in the same tick
     player.health = Math.max(0, player.health - amount);
     if (player.health > 0) return;
@@ -265,8 +292,7 @@ export class GameRoom extends Room {
     if (player.primary) this.dropPickup(player.primary, player.x, player.y, player.primaryMag, player.primaryReserve);
     player.primary = "";
     player.slot = 0;
-    const attacker = this.state.players.get(attackerId);
-    this.broadcast("kill", { killer: attacker?.name ?? "?", victim: player.name });
+    this.broadcast("kill", { killer: killerName, victim: player.name });
     this.clock.setTimeout(() => {
       if (this.state.players.get(victimId) === player) this.respawn(player);
     }, RESPAWN_MS);

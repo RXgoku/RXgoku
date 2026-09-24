@@ -9,6 +9,8 @@ import { WEAPONS } from "../../server/src/weapons.js";
 const INTERP_DELAY_MS = 100; // render remote players this far in the past
 const AIM_SEND_MS = 50;      // how often we tell the server where we're aiming
 const HEALTH_BAR_W = 36;
+const MINIMAP_SIZE = 160;
+const FOG_SEGMENTS = 96;
 const serverUrl = import.meta.env.VITE_SERVER_URL
   || (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin);
 const statusEl = document.getElementById("status");
@@ -28,6 +30,11 @@ class GameScene extends Phaser.Scene {
 
   async create() {
     this.drawGround();
+    this.zoneGfx = this.add.graphics().setDepth(3);
+    this.minimap = this.add.graphics().setScrollFactor(0).setDepth(10);
+    this.banner = this.add.text(0, 36, "", {
+      fontFamily: "monospace", fontSize: "16px", color: "#ffffff", backgroundColor: "#00000099", padding: { x: 8, y: 4 },
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10);
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
     this.hud = this.add.text(12, 0, "", {
       fontFamily: "monospace", fontSize: "16px", color: "#ffffff", backgroundColor: "#00000099", padding: { x: 8, y: 6 },
@@ -111,6 +118,8 @@ class GameScene extends Phaser.Scene {
     this.moveBullets(deltaMs / 1000, now);
     this.updatePickupPrompt();
     this.updateHud();
+    this.drawZone();
+    this.drawMinimap();
   }
 
   sendInputAndPredict(dt) {
@@ -223,8 +232,56 @@ class GameScene extends Phaser.Scene {
     this.hud.setY(this.scale.height - this.hud.height - 12);
   }
 
+  drawZone() {
+    const z = this.room.state.zone;
+    const g = this.zoneGfx.clear();
+    // Fog outside the circle, as non-overlapping wedges so the alpha stays even.
+    const far = Math.hypot(MAP_WIDTH, MAP_HEIGHT) * 2;
+    g.fillStyle(0xc0392b, 0.28);
+    for (let i = 0; i < FOG_SEGMENTS; i++) {
+      const a0 = (i / FOG_SEGMENTS) * Math.PI * 2;
+      const a1 = ((i + 1) / FOG_SEGMENTS) * Math.PI * 2;
+      const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+      g.fillPoints([
+        { x: z.x + c0 * z.radius, y: z.y + s0 * z.radius },
+        { x: z.x + c0 * far, y: z.y + s0 * far },
+        { x: z.x + c1 * far, y: z.y + s1 * far },
+        { x: z.x + c1 * z.radius, y: z.y + s1 * z.radius },
+      ], true);
+    }
+    g.lineStyle(3, 0xff5544, 0.9).strokeCircle(z.x, z.y, z.radius);
+    if (z.nextRadius > 0 && (z.nextRadius !== z.radius || z.nextX !== z.x)) {
+      g.lineStyle(2, 0xffffff, 0.8).strokeCircle(z.nextX, z.nextY, z.nextRadius);
+    }
+
+    const me = this.me.pos;
+    const outside = Math.hypot(me.x - z.x, me.y - z.y) > z.radius;
+    const stage = z.radius === 0 ? "Zone closed"
+      : z.shrinking ? `Zone closing: ${z.secondsLeft}s` : `Zone moves in ${z.secondsLeft}s`;
+    const warn = outside && this.me.state.alive ? `  ⚠ OUTSIDE ZONE -${z.dps}/s` : "";
+    this.banner.setText(`Phase ${z.phase}/4 · ${stage}${warn}`)
+      .setColor(outside ? "#ff7766" : "#ffffff")
+      .setX(this.scale.width / 2);
+  }
+
+  drawMinimap() {
+    const z = this.room.state.zone;
+    const size = MINIMAP_SIZE;
+    const ox = this.scale.width - size - 12;
+    const oy = this.scale.height - size - 12;
+    const sx = size / MAP_WIDTH;
+    const sy = size / MAP_HEIGHT;
+    const g = this.minimap.clear();
+    g.fillStyle(0x1e3320, 0.9).fillRect(ox, oy, size, size);
+    g.lineStyle(2, 0xff5544).strokeCircle(ox + z.x * sx, oy + z.y * sy, z.radius * sx);
+    if (z.nextRadius > 0) g.lineStyle(1, 0xffffff).strokeCircle(ox + z.nextX * sx, oy + z.nextY * sy, z.nextRadius * sx);
+    g.fillStyle(0xffffff).fillCircle(ox + this.me.pos.x * sx, oy + this.me.pos.y * sy, 3);
+    g.lineStyle(1, 0xffffff, 0.6).strokeRect(ox, oy, size, size);
+  }
+
   showKill(killer, victim) {
-    const text = this.add.text(this.scale.width - 12, 12, `${killer} ✖ ${victim}`, {
+    this.killY = (this.killY ?? 0) % 5;
+    const text = this.add.text(this.scale.width - 12, 12 + this.killY++ * 26, `${killer} ✖ ${victim}`, {
       fontFamily: "monospace", fontSize: "14px", color: "#ffffff", backgroundColor: "#00000099", padding: { x: 6, y: 3 },
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(10);
     this.time.delayedCall(4000, () => text.destroy());

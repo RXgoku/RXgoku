@@ -24,6 +24,15 @@ Other devices on the same Wi-Fi can join using the "Network" URL Vite prints.
 `client/dist`, so a single Render/Railway/Fly service hosts everything.
 Set `PORT` if the host requires it.
 
+## Zone
+
+Four phases (~4 minutes), defined in `server/src/zone.js`. Outside the circle you take
+2 → 5 → 10 → 20 damage per second. For a shorter demo match, speed up every zone timer:
+
+```bash
+ZONE_TIME_SCALE=3 npm run dev:server   # ~80 second match
+```
+
 ## How the netcode works
 
 - The server is authoritative. Clients send `{seq, up, down, left, right, dt}` each frame,
