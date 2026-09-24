@@ -22,7 +22,7 @@ No download and no account: open the link and play. Bring your friends into the 
 
 | Stage | What happens |
 |---|---|
-| **Lobby** | Walk around, pick your loadout. The first player in is host and presses **Start** (it auto-starts at 10 players). |
+| **Lobby** | Walk around, pick your loadout. The first player in is host and presses **Start** (it auto-starts when the room is full at 20). |
 | **Drop** | 3-second countdown. Bots fill the empty slots, and everyone lands spread out across the map. |
 | **Loot** | Grab an SMG, shotgun or sniper off the ground. Bushes hide you from other players (bots aren't fooled). |
 | **Zone** | Four phases. The safe circle shrinks towards a random spot, and the gas hurts more each phase (2 → 5 → 10 → 20 HP/s). |
@@ -128,7 +128,7 @@ It runs as a single free web service (`npm run build`, then `npm start`), with `
 | `ZONE_TIME_SCALE` | env var | `1` | Speeds up the zone. `1` ≈ 4-minute match, `3` ≈ 80 seconds |
 | `PORT` | env var | `2567` | Server port |
 | `LOADOUT_DROP_PHASE` | `server/src/constants.js` | `2` | Zone phase when loadout crates land (`0` = spawn with full loadout) |
-| `MIN_PLAYERS`, `AUTO_START_PLAYERS` | `server/src/constants.js` | `2`, `10` | Lobby start rules |
+| `MIN_PLAYERS`, `AUTO_START_PLAYERS` | `server/src/constants.js` | `2`, `20` | Lobby start rules |
 | Weapon stats | `server/src/weapons.js` | | Damage, fire rate, spread, pellets, magazine, reload, loot rarity |
 | Zone phases | `server/src/zone.js` | | Wait and shrink times, circle sizes, damage per phase |
 | Bot behaviour | top of `server/src/bots.js` | | Sight range, reaction time, aim error |

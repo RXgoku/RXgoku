@@ -12,7 +12,7 @@ export const BULLET_RADIUS = 4;
 export const PICKUP_COUNT = 40;
 export const PICKUP_RANGE = 48; // px from player centre
 export const MIN_PLAYERS = 2;        // host can start once this many are in the lobby
-export const AUTO_START_PLAYERS = 10; // lobby starts by itself at this many
+export const AUTO_START_PLAYERS = 20; // lobby starts by itself at this many (20 = full room)
 export const COUNTDOWN_S = 3;
 export const END_SCREEN_S = 10;       // winner screen, then back to the lobby
 // Zone phase at which each player's loadout crate lands (0 = spawn with the full loadout).
