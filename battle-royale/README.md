@@ -4,7 +4,7 @@
 
 No download and no account: open the link and play. Bring your friends into the same match, or play alone against bots that fill the lobby.
 
-**▶ Play now:** `https://YOUR-APP.onrender.com` *(replace after deploying; see [Deploy](#deploy))*
+**▶ Play now: [battle-royale-ri8x.onrender.com](https://battle-royale-ri8x.onrender.com)** *(free hosting: the first visit after a quiet spell can take ~50 s to wake the server)*
 
 ![Gameplay: a bot fires tracer rounds at the player while the zone edge closes in](docs/gameplay.png)
 
@@ -119,6 +119,17 @@ Open two tabs to see two players, and add `?name=Alice` to the URL to set a name
 3. Click **Apply**. After a few minutes you get a public URL.
 
 It runs as a single free web service (`npm run build`, then `npm start`), with `/health` for Render's health check. On the free plan the service sleeps after 15 minutes idle, and the first visit after that takes about a minute to wake it.
+
+## Load test
+
+Fills a fresh room (it never joins a real lobby) with simulated players who move and shoot, then
+reports how smoothly the server keeps up:
+
+```bash
+npm --prefix client run loadtest -- https://battle-royale-ri8x.onrender.com 20 30   # url, players, seconds
+```
+
+The target is about 30 updates per second, with no long gaps between updates.
 
 ## Configuration
 

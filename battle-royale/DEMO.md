@@ -14,7 +14,7 @@ A 60-second live demo in which the audience joins your match from their laptops.
 ## 10 minutes before
 
 - [ ] **Open the game link now.** The free Render plan sleeps after 15 minutes, and waking it takes about a minute. Don't do that in front of the judges.
-- [ ] Open `https://YOUR-APP.onrender.com/?name=YourName` in the browser you'll present from, at 100% zoom, with other tabs closed.
+- [ ] Open `https://battle-royale-ri8x.onrender.com/?name=YourName` in the browser you'll present from, at 100% zoom, with other tabs closed.
 - [ ] Check that sound comes out of the room speakers, not just your laptop (HDMI audio can switch output). Press **M** once to confirm the mute toggle works, then press it again.
 - [ ] Have the QR slide ready to show next to the game.
 
