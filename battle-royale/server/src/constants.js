@@ -8,11 +8,9 @@ export const TICK_MS = 1000 / 30;
 export const MAX_INPUT_DT = 0.05; // seconds; one input can never move more than this
 
 export const MAX_HEALTH = 100;
-export const FIRE_COOLDOWN_MS = 150;
-export const BULLET_SPEED = 900; // px per second
-export const BULLET_LIFETIME_MS = 800;
-export const BULLET_DAMAGE = 20;
 export const BULLET_RADIUS = 4;
+export const PICKUP_COUNT = 40;
+export const PICKUP_RANGE = 48; // px from player centre
 export const RESPAWN_MS = 3000; // temporary until the battle royale win condition exists
 
 export function applyMove(pos, input) {

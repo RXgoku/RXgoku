@@ -10,7 +10,10 @@ npm run dev:server   # terminal 1, ws on :2567
 npm run dev:client   # terminal 2, open the URL Vite prints
 ```
 
-Controls: WASD to move, mouse to aim, hold left click to shoot.
+Controls: WASD move, mouse aim, hold left click shoot, E pick up/swap weapon, R reload, 1/2 switch slot.
+
+Weapons are plain data in `server/src/weapons.js` (damage, fire rate, spread, pellets, magazine,
+reload time, spawn weight). Edit numbers there to rebalance; both server and client read it.
 
 Open two tabs to see two players. Add `?name=Alice` to the URL to set a name.
 Other devices on the same Wi-Fi can join using the "Network" URL Vite prints.
