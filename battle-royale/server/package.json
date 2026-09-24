@@ -1,0 +1,22 @@
+{
+  "name": "br-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@colyseus/core": "^0.18.16",
+    "@colyseus/schema": "^5.0.34",
+    "@colyseus/ws-transport": "^0.18.3",
+    "express": "^5.2.1"
+  }
+}
