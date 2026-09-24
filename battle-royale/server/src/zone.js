@@ -17,11 +17,21 @@ export class ZoneController {
     this.zone = zone;
   }
 
-  start(now) {
+  // Full-map circle that doesn't move (lobby).
+  reset() {
     const z = this.zone;
-    z.x = MAP_WIDTH / 2;
-    z.y = MAP_HEIGHT / 2;
-    z.radius = Math.hypot(MAP_WIDTH, MAP_HEIGHT) / 2;
+    z.x = z.nextX = MAP_WIDTH / 2;
+    z.y = z.nextY = MAP_HEIGHT / 2;
+    z.radius = z.nextRadius = Math.hypot(MAP_WIDTH, MAP_HEIGHT) / 2;
+    z.phase = 0;
+    z.shrinking = false;
+    z.secondsLeft = 0;
+    z.dps = 0;
+    this.closed = false;
+  }
+
+  start(now) {
+    this.reset();
     this.beginPhase(0, now);
   }
 

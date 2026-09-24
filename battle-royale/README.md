@@ -15,6 +15,11 @@ Controls: WASD move, mouse aim, hold left click shoot, E pick up/swap weapon, R 
 Weapons are plain data in `server/src/weapons.js` (damage, fire rate, spread, pellets, magazine,
 reload time, spawn weight). Edit numbers there to rebalance; both server and client read it.
 
+Match flow: everyone waits in a lobby, the host (first player in) presses **Start match**
+(needs 2+ players, or it auto-starts at 10). After a 3s countdown the room locks, there are no
+respawns, eliminated players spectate, and the last one alive wins. The winner screen shows kills,
+then everyone returns to the lobby after 10s. Match settings live in `server/src/constants.js`.
+
 Open two tabs to see two players. Add `?name=Alice` to the URL to set a name.
 Other devices on the same Wi-Fi can join using the "Network" URL Vite prints.
 

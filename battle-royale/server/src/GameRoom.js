@@ -2,7 +2,8 @@ import { Room } from "@colyseus/core";
 import { GameState, Player, Pickup, Zone } from "./schema.js";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, TICK_MS, MAX_INPUT_DT, applyMove,
-  MAX_HEALTH, BULLET_RADIUS, RESPAWN_MS, PICKUP_COUNT, PICKUP_RANGE,
+  MAX_HEALTH, BULLET_RADIUS, PICKUP_COUNT, PICKUP_RANGE,
+  MIN_PLAYERS, AUTO_START_PLAYERS, COUNTDOWN_S, END_SCREEN_S,
 } from "./constants.js";
 import { WEAPONS, randomPickupWeapon } from "./weapons.js";
 import { ZoneController } from "./zone.js";
@@ -10,7 +11,6 @@ import { ZoneController } from "./zone.js";
 const COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#ecf0f1"];
 const MAX_QUEUED_INPUTS = 60;
 const MAX_TIME_BUDGET = 0.25; // seconds of movement a client may bank
-const ZONE_RESTART_MS = 10000; // temporary loop until the match flow (lobby/winner) exists
 
 export class GameRoom extends Room {
   maxClients = 20;
@@ -21,16 +21,13 @@ export class GameRoom extends Room {
     this.state.mapHeight = MAP_HEIGHT;
     this.state.zone = new Zone();
     this.zone = new ZoneController(this.state.zone);
-    this.zone.start(this.clock.currentTime);
     this.clock.setInterval(() => this.zoneDamage(), 1000);
     this.sessions = new Map(); // sessionId -> { inputs: [], budget, lastShot, reloadTimer }
     this.bullets = new Map();  // id -> { owner, x, y, vx, vy, damage, expires }; server-only, clients get events
     this.nextBulletId = 1;
     this.nextPickupId = 1;
-    for (let i = 0; i < PICKUP_COUNT; i++) {
-      const id = randomPickupWeapon();
-      this.dropPickup(id, randomCoord(MAP_WIDTH), randomCoord(MAP_HEIGHT), WEAPONS[id].magSize, WEAPONS[id].reserve);
-    }
+    this.phaseTimer = null;
+    this.toLobby();
 
     // Clients send key state + frame time; the server applies it and owns the result.
     this.onMessage("input", (client, msg) => {
@@ -59,6 +56,9 @@ export class GameRoom extends Room {
       if (isObject(msg)) this.switchSlot(client.sessionId, msg.slot);
     });
     this.onMessage("pickup", (client) => this.pickUp(client.sessionId));
+    this.onMessage("start", (client) => {
+      if (client.sessionId === this.state.hostId) this.startCountdown();
+    });
 
     this.setPatchRate(TICK_MS);
     this.setSimulationInterval((dt) => this.update(dt), TICK_MS);
@@ -66,22 +66,36 @@ export class GameRoom extends Room {
 
   onJoin(client, options = {}) {
     const player = new Player();
-    player.color = COLORS[this.clients.length % COLORS.length];
+    player.color = this.freeColor();
     player.name = String(options.name || "Player").slice(0, 16);
     player.lastSeq = 0;
     player.angle = 0;
     this.sessions.set(client.sessionId, { inputs: [], budget: 0, lastShot: -Infinity, reloadTimer: null });
-    this.respawn(player);
+    this.resetPlayer(player);
+    // The room is locked outside the lobby, so this is only a safety net.
+    if (this.state.phase !== "lobby") player.alive = false;
     this.state.players.set(client.sessionId, player);
+    if (!this.state.hostId) this.state.hostId = client.sessionId;
+    if (this.state.phase === "lobby" && this.clients.length >= AUTO_START_PLAYERS) this.startCountdown();
   }
 
   onLeave(client) {
     this.cancelReload(client.sessionId);
     this.state.players.delete(client.sessionId);
     this.sessions.delete(client.sessionId);
+    if (this.state.hostId === client.sessionId) {
+      this.state.hostId = this.state.players.keys().next().value ?? "";
+    }
+    if (this.state.phase === "countdown" && this.state.players.size < MIN_PLAYERS) this.toLobby();
+    if (this.state.phase === "playing") this.checkWinner();
   }
 
-  respawn(player) {
+  freeColor() {
+    const used = new Set([...this.state.players.values()].map((p) => p.color));
+    return COLORS.find((c) => !used.has(c)) ?? COLORS[this.state.players.size % COLORS.length];
+  }
+
+  resetPlayer(player) {
     const spot = this.zone.randomPointInside(PLAYER_RADIUS);
     player.x = spot.x;
     player.y = spot.y;
@@ -93,6 +107,75 @@ export class GameRoom extends Room {
     player.primaryReserve = 0;
     player.pistolMag = WEAPONS.pistol.magSize;
     player.reloading = false;
+    player.kills = 0;
+  }
+
+  // --- match flow: lobby -> countdown -> playing -> ended -> lobby ----------
+
+  setPhaseTimer(fn, ms) {
+    this.phaseTimer?.clear();
+    this.phaseTimer = fn ? this.clock.setTimeout(fn, ms) : null;
+  }
+
+  toLobby() {
+    this.setPhaseTimer(null);
+    this.state.phase = "lobby";
+    this.state.winner = "";
+    this.state.countdown = 0;
+    this.zone.reset();
+    this.clearBullets();
+    this.state.pickups.clear();
+    this.state.players.forEach((player, id) => {
+      this.cancelReload(id);
+      this.resetPlayer(player);
+    });
+    this.state.aliveCount = this.state.players.size;
+    this.unlock();
+    if (this.clients.length >= AUTO_START_PLAYERS) this.startCountdown();
+  }
+
+  startCountdown() {
+    if (this.state.phase !== "lobby" || this.state.players.size < MIN_PLAYERS) return;
+    this.lock(); // late joiners get a fresh room instead of landing mid-match
+    this.state.phase = "countdown";
+    this.state.countdown = COUNTDOWN_S;
+    const tick = () => {
+      if (this.state.phase !== "countdown") return;
+      if (--this.state.countdown > 0) this.setPhaseTimer(tick, 1000);
+      else this.startMatch();
+    };
+    this.setPhaseTimer(tick, 1000);
+  }
+
+  startMatch() {
+    this.state.phase = "playing";
+    this.clearBullets();
+    this.state.pickups.clear();
+    for (let i = 0; i < PICKUP_COUNT; i++) {
+      const id = randomPickupWeapon();
+      this.dropPickup(id, randomCoord(MAP_WIDTH), randomCoord(MAP_HEIGHT), WEAPONS[id].magSize, WEAPONS[id].reserve);
+    }
+    this.zone.start(this.clock.currentTime);
+    this.state.players.forEach((player, id) => {
+      this.cancelReload(id);
+      this.resetPlayer(player);
+    });
+    this.state.aliveCount = this.state.players.size;
+  }
+
+  checkWinner() {
+    const alive = [...this.state.players.values()].filter((p) => p.alive);
+    this.state.aliveCount = alive.length;
+    if (this.state.phase !== "playing" || alive.length > 1) return;
+    this.state.phase = "ended";
+    this.state.winner = alive[0]?.name ?? "";
+    this.clearBullets();
+    this.setPhaseTimer(() => this.toLobby(), END_SCREEN_S * 1000);
+  }
+
+  clearBullets() {
+    this.bullets.clear();
+    this.broadcast("clearBullets");
   }
 
   // --- weapons -------------------------------------------------------------
@@ -104,7 +187,7 @@ export class GameRoom extends Room {
   shoot(id, angle) {
     const player = this.state.players.get(id);
     const s = this.sessions.get(id);
-    if (!player?.alive || !s || player.reloading) return;
+    if (this.state.phase !== "playing" || !player?.alive || !s || player.reloading) return;
     const weaponId = this.activeWeapon(player);
     const w = WEAPONS[weaponId];
     const now = this.clock.currentTime;
@@ -177,7 +260,7 @@ export class GameRoom extends Room {
   // Swap the nearest ground weapon into the primary slot, dropping the old one.
   pickUp(id) {
     const player = this.state.players.get(id);
-    if (!player?.alive) return;
+    if (this.state.phase !== "playing" || !player?.alive) return;
     let nearest = null;
     let nearestDist = PICKUP_RANGE;
     this.state.pickups.forEach((pickup, pickupId) => {
@@ -218,18 +301,11 @@ export class GameRoom extends Room {
   }
 
   updateZone() {
-    const now = this.clock.currentTime;
-    if (this.zone.update(now) && !this.zoneRestartAt) {
-      this.zoneRestartAt = now + ZONE_RESTART_MS;
-    }
-    if (this.zoneRestartAt && now >= this.zoneRestartAt) {
-      this.zoneRestartAt = null;
-      this.zone = new ZoneController(this.state.zone);
-      this.zone.start(now);
-    }
+    if (this.state.phase === "playing") this.zone.update(this.clock.currentTime);
   }
 
   zoneDamage() {
+    if (this.state.phase !== "playing") return;
     const dps = this.state.zone.dps;
     this.state.players.forEach((player, id) => {
       if (player.alive && this.zone.isOutside(player.x, player.y)) this.damage(player, id, dps, "The zone");
@@ -265,7 +341,7 @@ export class GameRoom extends Room {
       // Test the whole segment travelled this tick, so fast bullets can't skip past a player.
       const victim = this.findHit(b, x0, y0);
       if (victim) {
-        this.damage(victim.player, victim.id, b.damage, this.state.players.get(b.owner)?.name ?? "?");
+        this.damage(victim.player, victim.id, b.damage, this.state.players.get(b.owner)?.name ?? "?", b.owner);
         this.endBullet(id, b.x, b.y, true);
       } else if (now >= b.expires || b.x < 0 || b.y < 0 || b.x > MAP_WIDTH || b.y > MAP_HEIGHT) {
         this.endBullet(id, b.x, b.y, false);
@@ -283,8 +359,9 @@ export class GameRoom extends Room {
     return best;
   }
 
-  damage(player, victimId, amount, killerName) {
-    if (!player.alive) return; // several shotgun pellets can land in the same tick
+  damage(player, victimId, amount, killerName, killerId = null) {
+    // Several pellets can land in one tick, and nothing may die after the winner is decided.
+    if (!player.alive || this.state.phase !== "playing") return;
     player.health = Math.max(0, player.health - amount);
     if (player.health > 0) return;
     player.alive = false;
@@ -292,10 +369,12 @@ export class GameRoom extends Room {
     if (player.primary) this.dropPickup(player.primary, player.x, player.y, player.primaryMag, player.primaryReserve);
     player.primary = "";
     player.slot = 0;
+    if (killerId) {
+      const killer = this.state.players.get(killerId);
+      if (killer) killer.kills += 1;
+    }
     this.broadcast("kill", { killer: killerName, victim: player.name });
-    this.clock.setTimeout(() => {
-      if (this.state.players.get(victimId) === player) this.respawn(player);
-    }, RESPAWN_MS);
+    this.checkWinner();
   }
 
   endBullet(id, x, y, hit) {

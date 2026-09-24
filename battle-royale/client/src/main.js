@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { Client, Callbacks } from "@colyseus/sdk";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, MAX_INPUT_DT, applyMove,
-  MAX_HEALTH, BULLET_RADIUS, RESPAWN_MS, PICKUP_RANGE,
+  MAX_HEALTH, BULLET_RADIUS, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S,
 } from "../../server/src/constants.js";
 import { WEAPONS } from "../../server/src/weapons.js";
 
@@ -11,9 +11,16 @@ const AIM_SEND_MS = 50;      // how often we tell the server where we're aiming
 const HEALTH_BAR_W = 36;
 const MINIMAP_SIZE = 160;
 const FOG_SEGMENTS = 96;
+const TELEPORT_DIST = 150; // a jump bigger than this is a teleport (match start), not movement: don't interpolate it
 const serverUrl = import.meta.env.VITE_SERVER_URL
   || (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin);
 const statusEl = document.getElementById("status");
+const overlay = {
+  root: document.getElementById("overlay"),
+  title: document.getElementById("overlay-title"),
+  body: document.getElementById("overlay-body"),
+  start: document.getElementById("start-btn"),
+};
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -69,7 +76,10 @@ class GameScene extends Phaser.Scene {
         avatar.buffer = [{ t: performance.now(), x: player.x, y: player.y }];
         this.others.set(id, avatar);
         callbacks.onChange(player, () => {
-          avatar.buffer.push({ t: performance.now(), x: player.x, y: player.y });
+          const last = avatar.buffer[avatar.buffer.length - 1];
+          const point = { t: performance.now(), x: player.x, y: player.y };
+          if (Math.hypot(point.x - last.x, point.y - last.y) > TELEPORT_DIST) avatar.buffer = [point];
+          else avatar.buffer.push(point);
           if (avatar.buffer.length > 30) avatar.buffer.shift();
         });
       }
@@ -97,6 +107,14 @@ class GameScene extends Phaser.Scene {
     this.room.onMessage("bullets", (list) => list.forEach((b) => this.addBullet(b)));
     this.room.onMessage("bulletEnd", ({ id, x, y, hit }) => this.removeBullet(id, x, y, hit));
     this.room.onMessage("kill", ({ killer, victim }) => this.showKill(killer, victim));
+    this.room.onMessage("clearBullets", () => {
+      for (const id of [...this.bullets.keys()]) this.removeBullet(id);
+    });
+    callbacks.listen("phase", (phase) => {
+      if (phase === "ended") this.endedAt = performance.now();
+      if (phase !== "playing") this.killedBy = null;
+    });
+    overlay.start.addEventListener("click", () => this.room.send("start"));
     this.room.onLeave(() => { statusEl.textContent = "Disconnected"; });
 
     const kb = this.input.keyboard;
@@ -111,8 +129,10 @@ class GameScene extends Phaser.Scene {
     const now = performance.now();
     if (this.me.state.alive) {
       this.sendInputAndPredict(deltaMs / 1000);
-      this.aimAndShoot(now);
+      this.aimAndShoot(now, this.room.state.phase === "playing");
     }
+    this.updateCamera();
+    this.updateOverlay(now);
     this.placeAvatar(this.me, this.me.pos.x, this.me.pos.y, this.me.state);
     this.interpolateOthers(now - INTERP_DELAY_MS);
     this.moveBullets(deltaMs / 1000, now);
@@ -135,7 +155,7 @@ class GameScene extends Phaser.Scene {
     applyMove(this.me.pos, input); // move now; the server will confirm or correct
   }
 
-  aimAndShoot(now) {
+  aimAndShoot(now, canShoot) {
     const pointer = this.input.activePointer;
     const world = pointer.positionToCamera(this.cameras.main);
     this.me.angle = Math.atan2(world.y - this.me.pos.y, world.x - this.me.pos.x);
@@ -144,7 +164,7 @@ class GameScene extends Phaser.Scene {
     const state = this.me.state;
     const weaponId = activeWeapon(state);
     const mag = weaponId === "pistol" ? state.pistolMag : state.primaryMag;
-    const canFire = !state.reloading && mag > 0;
+    const canFire = canShoot && !state.reloading && mag > 0;
     if (pointer.leftButtonDown() && canFire && now - this.lastShot >= WEAPONS[weaponId].cooldownMs) {
       this.lastShot = now;
       this.lastAimSent = now;
@@ -204,7 +224,7 @@ class GameScene extends Phaser.Scene {
   updatePickupPrompt() {
     let nearest = null;
     let nearestDist = PICKUP_RANGE;
-    if (this.me.state.alive) {
+    if (this.me.state.alive && this.room.state.phase === "playing") {
       for (const p of this.pickups.values()) {
         const d = Math.hypot(p.state.x - this.me.pos.x, p.state.y - this.me.pos.y);
         if (d <= nearestDist) { nearest = p; nearestDist = d; }
@@ -212,7 +232,7 @@ class GameScene extends Phaser.Scene {
     }
     this.prompt.setVisible(!!nearest);
     if (nearest) {
-      this.prompt.setText(`E: ${WEAPONS[nearest.state.weapon].label}`).setPosition(nearest.state.x, nearest.state.y - 26);
+      this.prompt.setText(`E: ${WEAPONS[nearest.state.weapon].label}`).setPosition(nearest.state.x, nearest.state.y + 36);
     }
   }
 
@@ -230,6 +250,62 @@ class GameScene extends Phaser.Scene {
     if (s.reloading) lines.push("  Reloading…");
     this.hud.setText(lines.join("\n"));
     this.hud.setY(this.scale.height - this.hud.height - 12);
+  }
+
+  // Follow yourself, or spectate your killer (or anyone alive) once eliminated.
+  updateCamera() {
+    let target = this.me;
+    if (!this.me.state.alive) {
+      const alive = [...this.others.values()].filter((o) => o.state.alive);
+      target = alive.find((o) => o.state.name === this.killedBy) ?? alive[0] ?? this.me;
+    }
+    if (this.cameraTarget !== target) {
+      this.cameraTarget = target;
+      this.spectating = target === this.me ? null : target.state.name;
+      this.cameras.main.startFollow(target.container, true, 0.15, 0.15);
+    }
+  }
+
+  updateOverlay(now) {
+    const state = this.room.state;
+    const players = [...state.players.values()];
+    let title = "", body = "", corner = false, showStart = false, canStart = false;
+
+    if (state.phase === "lobby") {
+      const isHost = state.hostId === this.room.sessionId;
+      const host = state.players.get(state.hostId)?.name ?? "?";
+      title = `Lobby · ${players.length} player${players.length === 1 ? "" : "s"}`;
+      body = `${players.map((p) => escapeHtml(p.name)).join(", ")}<br>`
+        + (isHost ? "You're the host." : `Waiting for ${escapeHtml(host)} to start…`)
+        + `<br>Auto-starts at ${AUTO_START_PLAYERS} players.`;
+      showStart = isHost;
+      canStart = players.length >= MIN_PLAYERS;
+      overlay.start.textContent = canStart ? "Start match" : `Need ${MIN_PLAYERS} players`;
+    } else if (state.phase === "countdown") {
+      title = `Dropping in ${state.countdown}…`;
+    } else if (state.phase === "playing" && !this.me.state.alive) {
+      corner = true;
+      body = `Eliminated${this.killedBy ? ` by ${escapeHtml(this.killedBy)}` : ""}`
+        + (this.spectating ? ` · spectating ${escapeHtml(this.spectating)}` : "");
+    } else if (state.phase === "ended") {
+      const won = state.winner && state.winner === this.me.state.name && this.me.state.alive;
+      title = won ? "🏆 Victory!" : state.winner ? `🏆 ${escapeHtml(state.winner)} wins` : "No survivors";
+      const board = players.slice().sort((a, b) => b.kills - a.kills).slice(0, 5)
+        .map((p) => `${escapeHtml(p.name)}: ${p.kills} kill${p.kills === 1 ? "" : "s"}`).join("<br>");
+      const left = Math.max(0, Math.ceil(END_SCREEN_S - (now - (this.endedAt ?? now)) / 1000));
+      body = `${board}<br><br>Back to lobby in ${left}s`;
+    }
+
+    const key = [title, body, corner, showStart, canStart].join("|");
+    if (key === this.overlayKey) return;
+    this.overlayKey = key;
+    overlay.root.hidden = !title && !body;
+    overlay.root.classList.toggle("corner", corner);
+    overlay.title.hidden = !title;
+    overlay.title.innerHTML = title;
+    overlay.body.innerHTML = body;
+    overlay.start.hidden = !showStart;
+    overlay.start.disabled = !canStart;
   }
 
   drawZone() {
@@ -256,10 +332,13 @@ class GameScene extends Phaser.Scene {
 
     const me = this.me.pos;
     const outside = Math.hypot(me.x - z.x, me.y - z.y) > z.radius;
+    const phase = this.room.state.phase;
+    this.banner.setVisible(phase === "playing");
+    if (phase !== "playing") return;
     const stage = z.radius === 0 ? "Zone closed"
       : z.shrinking ? `Zone closing: ${z.secondsLeft}s` : `Zone moves in ${z.secondsLeft}s`;
     const warn = outside && this.me.state.alive ? `  ⚠ OUTSIDE ZONE -${z.dps}/s` : "";
-    this.banner.setText(`Phase ${z.phase}/4 · ${stage}${warn}`)
+    this.banner.setText(`${this.room.state.aliveCount} alive · Phase ${z.phase}/4 · ${stage}${warn}`)
       .setColor(outside ? "#ff7766" : "#ffffff")
       .setX(this.scale.width / 2);
   }
@@ -275,11 +354,13 @@ class GameScene extends Phaser.Scene {
     g.fillStyle(0x1e3320, 0.9).fillRect(ox, oy, size, size);
     g.lineStyle(2, 0xff5544).strokeCircle(ox + z.x * sx, oy + z.y * sy, z.radius * sx);
     if (z.nextRadius > 0) g.lineStyle(1, 0xffffff).strokeCircle(ox + z.nextX * sx, oy + z.nextY * sy, z.nextRadius * sx);
-    g.fillStyle(0xffffff).fillCircle(ox + this.me.pos.x * sx, oy + this.me.pos.y * sy, 3);
+    const focus = this.cameraTarget && this.cameraTarget !== this.me ? this.cameraTarget.container : this.me.pos;
+    g.fillStyle(0xffffff).fillCircle(ox + focus.x * sx, oy + focus.y * sy, 3);
     g.lineStyle(1, 0xffffff, 0.6).strokeRect(ox, oy, size, size);
   }
 
   showKill(killer, victim) {
+    if (victim === this.me.state.name) this.killedBy = killer;
     this.killY = (this.killY ?? 0) % 5;
     const text = this.add.text(this.scale.width - 12, 12 + this.killY++ * 26, `${killer} ✖ ${victim}`, {
       fontFamily: "monospace", fontSize: "14px", color: "#ffffff", backgroundColor: "#00000099", padding: { x: 6, y: 3 },
@@ -288,9 +369,7 @@ class GameScene extends Phaser.Scene {
   }
 
   showStatus() {
-    statusEl.textContent = this.me && !this.me.state.alive
-      ? `You died — respawning in ${RESPAWN_MS / 1000}s`
-      : `${this.name} — WASD move, mouse aim, click shoot, E pick up, R reload, 1/2 switch`;
+    statusEl.textContent = `${this.name} — WASD move, mouse aim, click shoot, E pick up, R reload, 1/2 switch`;
   }
 
   makeAvatar(player) {
@@ -332,6 +411,10 @@ class GameScene extends Phaser.Scene {
     for (let i = 0; i <= MAP_HEIGHT; i += 100) g.lineBetween(0, i, MAP_WIDTH, i);
     g.lineStyle(4, 0xff0000).strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
   }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 function activeWeapon(state) {

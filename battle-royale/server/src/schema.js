@@ -15,6 +15,7 @@ export const Player = schema({
   primaryMag: t.uint8(),
   primaryReserve: t.uint16(),
   reloading: t.boolean(),
+  kills: t.uint8(),
 }, "Player");
 
 export const Pickup = schema({
@@ -44,4 +45,9 @@ export const GameState = schema({
   players: t.map(Player),
   pickups: t.map(Pickup),
   zone: t.ref(Zone),
+  phase: t.string(),     // "lobby" | "countdown" | "playing" | "ended"
+  hostId: t.string(),    // sessionId allowed to press Start
+  countdown: t.uint8(),
+  aliveCount: t.uint8(),
+  winner: t.string(),    // name of the last player standing ("" = nobody survived)
 }, "GameState");
