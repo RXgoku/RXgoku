@@ -109,6 +109,7 @@ export class BotBrain {
     let best = null;
     let bestDist = radius;
     room.state.pickups.forEach((p) => {
+      if (p.owner && p.owner !== this.id) return; // someone else's loadout crate
       const d = Math.hypot(p.x - player.x, p.y - player.y);
       if (d <= bestDist) { best = p; bestDist = d; }
     });

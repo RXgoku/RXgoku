@@ -9,14 +9,17 @@ export const Player = schema({
   color: t.string(),
   name: t.string(),
   lastSeq: t.uint32(), // last input the server applied; lets the owner reconcile
-  slot: t.uint8(),       // 0 = pistol, 1 = primary
+  slot: t.uint8(),       // 0 = secondary, 1 = primary
   primary: t.string(),   // weapon id in slot 1, "" if empty
-  pistolMag: t.uint8(),
+  secondary: t.string(), // weapon id in slot 0 (always set)
+  secondaryMag: t.uint8(),
   primaryMag: t.uint8(),
   primaryReserve: t.uint16(),
   reloading: t.boolean(),
   kills: t.uint8(),
   bot: t.boolean(),
+  loadoutPrimary: t.string(),   // chosen in the lobby, delivered by the loadout drop
+  loadoutSecondary: t.string(), // chosen in the lobby, spawned with
 }, "Player");
 
 export const Pickup = schema({
@@ -25,6 +28,7 @@ export const Pickup = schema({
   weapon: t.string(),
   mag: t.uint8(),
   reserve: t.uint16(),
+  owner: t.string(), // sessionId allowed to take it ("" = anyone); used by loadout crates
 }, "Pickup");
 
 export const Zone = schema({

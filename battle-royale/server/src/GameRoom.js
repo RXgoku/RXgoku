@@ -3,9 +3,9 @@ import { GameState, Player, Pickup, Zone } from "./schema.js";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, TICK_MS, MAX_INPUT_DT, applyMove,
   MAX_HEALTH, BULLET_RADIUS, PICKUP_COUNT, PICKUP_RANGE,
-  MIN_PLAYERS, AUTO_START_PLAYERS, COUNTDOWN_S, END_SCREEN_S,
+  MIN_PLAYERS, AUTO_START_PLAYERS, COUNTDOWN_S, END_SCREEN_S, LOADOUT_DROP_PHASE,
 } from "./constants.js";
-import { WEAPONS, randomPickupWeapon } from "./weapons.js";
+import { WEAPONS, randomPickupWeapon, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "./weapons.js";
 import { ZoneController } from "./zone.js";
 import { BotBrain, BOT_NAMES } from "./bots.js";
 
@@ -63,6 +63,12 @@ export class GameRoom extends Room {
       if (isObject(msg)) this.switchSlot(client.sessionId, msg.slot);
     });
     this.onMessage("pickup", (client) => this.pickUp(client.sessionId));
+    this.onMessage("loadout", (client, msg) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player || !isObject(msg)) return;
+      if (PRIMARY_CHOICES.includes(msg.primary)) player.loadoutPrimary = msg.primary;
+      if (SECONDARY_CHOICES.includes(msg.secondary)) player.loadoutSecondary = msg.secondary;
+    });
     this.onMessage("start", (client) => {
       if (client.sessionId === this.state.hostId) this.startCountdown();
     });
@@ -77,6 +83,8 @@ export class GameRoom extends Room {
     player.name = String(options.name || "Player").slice(0, 16);
     player.lastSeq = 0;
     player.angle = 0;
+    player.loadoutPrimary = PRIMARY_CHOICES[0];
+    player.loadoutSecondary = SECONDARY_CHOICES[0];
     this.sessions.set(client.sessionId, { inputs: [], budget: 0, lastShot: -Infinity, reloadTimer: null });
     this.resetPlayer(player);
     // The room is locked outside the lobby, so this is only a safety net.
@@ -148,7 +156,9 @@ export class GameRoom extends Room {
     player.primary = "";
     player.primaryMag = 0;
     player.primaryReserve = 0;
-    player.pistolMag = WEAPONS.pistol.magSize;
+    // Bots keep the default secondary; humans spawn with the one they chose.
+    player.secondary = player.loadoutSecondary || SECONDARY_CHOICES[0];
+    player.secondaryMag = WEAPONS[player.secondary].magSize;
     player.reloading = false;
     player.kills = 0;
   }
@@ -210,6 +220,39 @@ export class GameRoom extends Room {
       this.resetPlayer(player, taken);
     });
     this.state.aliveCount = this.state.players.size;
+    this.loadoutsDropped = false;
+    if (LOADOUT_DROP_PHASE === 0) {
+      this.state.players.forEach((player, id) => {
+        if (!player.bot) this.giveLoadout(id, player);
+      });
+      this.loadoutsDropped = true;
+    }
+  }
+
+  // Each human gets a crate near them that only they can open.
+  dropLoadouts() {
+    this.loadoutsDropped = true;
+    this.state.players.forEach((player, id) => {
+      if (player.bot || !player.alive) return;
+      const a = Math.random() * Math.PI * 2;
+      const d = 120 + Math.random() * 80;
+      const x = Math.max(PLAYER_RADIUS, Math.min(MAP_WIDTH - PLAYER_RADIUS, player.x + Math.cos(a) * d));
+      const y = Math.max(PLAYER_RADIUS, Math.min(MAP_HEIGHT - PLAYER_RADIUS, player.y + Math.sin(a) * d));
+      this.dropPickup(LOADOUT, x, y, 0, 0, id);
+    });
+    this.broadcast("loadoutDrop");
+  }
+
+  giveLoadout(id, player) {
+    this.cancelReload(id);
+    if (player.primary) this.dropPickup(player.primary, player.x, player.y, player.primaryMag, player.primaryReserve);
+    const primary = WEAPONS[player.loadoutPrimary];
+    player.primary = player.loadoutPrimary;
+    player.primaryMag = primary.magSize;
+    player.primaryReserve = primary.reserve;
+    player.secondary = player.loadoutSecondary;
+    player.secondaryMag = WEAPONS[player.secondary].magSize;
+    player.slot = 1;
   }
 
   checkWinner() {
@@ -235,7 +278,7 @@ export class GameRoom extends Room {
   // --- weapons -------------------------------------------------------------
 
   activeWeapon(player) {
-    return player.slot === 1 && player.primary ? player.primary : "pistol";
+    return player.slot === 1 && player.primary ? player.primary : player.secondary;
   }
 
   shoot(id, angle) {
@@ -246,7 +289,7 @@ export class GameRoom extends Room {
     const w = WEAPONS[weaponId];
     const now = this.clock.currentTime;
     if (now - s.lastShot < w.cooldownMs) return;
-    const magKey = weaponId === "pistol" ? "pistolMag" : "primaryMag";
+    const magKey = player.slot === 1 && player.primary ? "primaryMag" : "secondaryMag";
     if (player[magKey] === 0) return this.startReload(id);
     s.lastShot = now;
     player[magKey] -= 1;
@@ -277,16 +320,16 @@ export class GameRoom extends Room {
     if (!player?.alive || !s || player.reloading) return;
     const weaponId = this.activeWeapon(player);
     const w = WEAPONS[weaponId];
-    const isPistol = weaponId === "pistol";
-    const mag = isPistol ? player.pistolMag : player.primaryMag;
-    if (mag >= w.magSize || (!isPistol && player.primaryReserve === 0)) return;
+    const isSecondary = !(player.slot === 1 && player.primary);
+    const mag = isSecondary ? player.secondaryMag : player.primaryMag;
+    if (mag >= w.magSize || (!isSecondary && player.primaryReserve === 0)) return;
 
     player.reloading = true;
     s.reloadTimer = this.clock.setTimeout(() => {
       s.reloadTimer = null;
       player.reloading = false;
-      if (isPistol) {
-        player.pistolMag = w.magSize;
+      if (isSecondary) {
+        player.secondaryMag = w.magSize;
       } else {
         const take = Math.min(w.magSize - player.primaryMag, player.primaryReserve);
         player.primaryMag += take;
@@ -318,6 +361,7 @@ export class GameRoom extends Room {
     let nearest = null;
     let nearestDist = PICKUP_RANGE;
     this.state.pickups.forEach((pickup, pickupId) => {
+      if (pickup.owner && pickup.owner !== id) return; // someone else's loadout crate
       const d = Math.hypot(pickup.x - player.x, pickup.y - player.y);
       if (d <= nearestDist) {
         nearest = { pickup, pickupId };
@@ -329,6 +373,7 @@ export class GameRoom extends Room {
     this.cancelReload(id);
     const { pickup, pickupId } = nearest;
     this.state.pickups.delete(pickupId);
+    if (pickup.weapon === LOADOUT) return this.giveLoadout(id, player);
     if (player.primary) this.dropPickup(player.primary, player.x, player.y, player.primaryMag, player.primaryReserve);
     player.primary = pickup.weapon;
     player.primaryMag = pickup.mag;
@@ -336,13 +381,14 @@ export class GameRoom extends Room {
     player.slot = 1;
   }
 
-  dropPickup(weapon, x, y, mag, reserve) {
+  dropPickup(weapon, x, y, mag, reserve, owner = "") {
     const pickup = new Pickup();
     pickup.x = x;
     pickup.y = y;
     pickup.weapon = weapon;
     pickup.mag = mag;
     pickup.reserve = reserve;
+    pickup.owner = owner;
     this.state.pickups.set(String(this.nextPickupId++), pickup);
   }
 
@@ -362,7 +408,9 @@ export class GameRoom extends Room {
   }
 
   updateZone() {
-    if (this.state.phase === "playing") this.zone.update(this.clock.currentTime);
+    if (this.state.phase !== "playing") return;
+    this.zone.update(this.clock.currentTime);
+    if (!this.loadoutsDropped && this.state.zone.phase >= LOADOUT_DROP_PHASE) this.dropLoadouts();
   }
 
   zoneDamage() {
@@ -430,6 +478,9 @@ export class GameRoom extends Room {
     if (player.primary) this.dropPickup(player.primary, player.x, player.y, player.primaryMag, player.primaryReserve);
     player.primary = "";
     player.slot = 0;
+    this.state.pickups.forEach((pickup, pickupId) => {
+      if (pickup.owner === victimId) this.state.pickups.delete(pickupId); // unopened loadout crate
+    });
     if (killerId) {
       const killer = this.state.players.get(killerId);
       if (killer) killer.kills += 1;

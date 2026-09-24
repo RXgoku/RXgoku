@@ -15,6 +15,8 @@ export const MIN_PLAYERS = 2;        // host can start once this many are in the
 export const AUTO_START_PLAYERS = 10; // lobby starts by itself at this many
 export const COUNTDOWN_S = 3;
 export const END_SCREEN_S = 10;       // winner screen, then back to the lobby
+// Zone phase at which each player's loadout crate lands (0 = spawn with the full loadout).
+export const LOADOUT_DROP_PHASE = 2;
 
 export function applyMove(pos, input) {
   const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);

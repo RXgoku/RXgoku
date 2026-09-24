@@ -20,6 +20,12 @@ Match flow: everyone waits in a lobby, the host (first player in) presses **Star
 respawns, eliminated players spectate, and the last one alive wins. The winner screen shows kills,
 then everyone returns to the lobby after 10s. Match settings live in `server/src/constants.js`.
 
+Loadout: in the lobby each player picks a primary (SMG / Shotgun / Sniper) and a secondary
+(Pistol / Revolver). You spawn with the secondary and loot as normal; when zone phase 2 begins a
+personal loadout crate lands near you (orange square, also on the minimap) that only you can open,
+giving your primary with full ammo. Set `LOADOUT_DROP_PHASE = 0` in `server/src/constants.js` to
+spawn with the whole loadout instead.
+
 Bots: when the host starts, server-side bots fill the match up to 10 players, so one person can
 play alone. They loot guns, avoid the zone, and fight anyone within half a screen, with a short
 reaction delay and aim error. If every human is eliminated the match ends straight away and the

@@ -2,9 +2,9 @@ import Phaser from "phaser";
 import { Client, Callbacks } from "@colyseus/sdk";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, MAX_INPUT_DT, applyMove,
-  MAX_HEALTH, BULLET_RADIUS, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S,
+  MAX_HEALTH, BULLET_RADIUS, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE,
 } from "../../server/src/constants.js";
-import { WEAPONS } from "../../server/src/weapons.js";
+import { WEAPONS, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "../../server/src/weapons.js";
 
 const INTERP_DELAY_MS = 100; // render remote players this far in the past
 const AIM_SEND_MS = 50;      // how often we tell the server where we're aiming
@@ -89,10 +89,14 @@ class GameScene extends Phaser.Scene {
       });
     });
     callbacks.onAdd("pickups", (pickup, id) => {
-      const w = WEAPONS[pickup.weapon];
-      const color = Phaser.Display.Color.HexStringToColor(w.color).color;
-      const box = this.add.rectangle(0, 0, 30, 14, color).setStrokeStyle(2, 0x000000);
-      const label = this.add.text(0, 14, w.label, { fontFamily: "monospace", fontSize: "10px", color: "#ffffff" }).setOrigin(0.5, 0);
+      const crate = pickup.weapon === LOADOUT;
+      const mine = pickup.owner === this.room.sessionId;
+      const color = crate ? 0xf39c12 : Phaser.Display.Color.HexStringToColor(WEAPONS[pickup.weapon].color).color;
+      const box = crate
+        ? this.add.rectangle(0, 0, 30, 30, color).setStrokeStyle(3, mine ? 0xffffff : 0x000000)
+        : this.add.rectangle(0, 0, 30, 14, color).setStrokeStyle(2, 0x000000);
+      const text = crate ? (mine ? "YOUR LOADOUT" : "Loadout") : WEAPONS[pickup.weapon].label;
+      const label = this.add.text(0, crate ? 20 : 14, text, { fontFamily: "monospace", fontSize: "10px", color: "#ffffff" }).setOrigin(0.5, 0);
       this.pickups.set(id, { state: pickup, container: this.add.container(pickup.x, pickup.y, [box, label]).setDepth(1) });
     });
     callbacks.onRemove("pickups", (_pickup, id) => {
@@ -115,6 +119,11 @@ class GameScene extends Phaser.Scene {
       if (phase !== "playing") this.killedBy = null;
     });
     overlay.start.addEventListener("click", () => this.room.send("start"));
+    overlay.body.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-slot]");
+      if (btn) this.room.send("loadout", { [btn.dataset.slot]: btn.dataset.weapon });
+    });
+    this.room.onMessage("loadoutDrop", () => this.announce("📦 Your loadout crate landed nearby — press E on it"));
     this.room.onLeave(() => { statusEl.textContent = "Disconnected"; });
 
     const kb = this.input.keyboard;
@@ -163,7 +172,7 @@ class GameScene extends Phaser.Scene {
     // Hold left mouse to fire; the server enforces the same cooldown and ammo rules.
     const state = this.me.state;
     const weaponId = activeWeapon(state);
-    const mag = weaponId === "pistol" ? state.pistolMag : state.primaryMag;
+    const mag = state.slot === 1 && state.primary ? state.primaryMag : state.secondaryMag;
     const canFire = canShoot && !state.reloading && mag > 0;
     if (pointer.leftButtonDown() && canFire && now - this.lastShot >= WEAPONS[weaponId].cooldownMs) {
       this.lastShot = now;
@@ -226,13 +235,15 @@ class GameScene extends Phaser.Scene {
     let nearestDist = PICKUP_RANGE;
     if (this.me.state.alive && this.room.state.phase === "playing") {
       for (const p of this.pickups.values()) {
+        if (p.state.owner && p.state.owner !== this.room.sessionId) continue;
         const d = Math.hypot(p.state.x - this.me.pos.x, p.state.y - this.me.pos.y);
         if (d <= nearestDist) { nearest = p; nearestDist = d; }
       }
     }
     this.prompt.setVisible(!!nearest);
     if (nearest) {
-      this.prompt.setText(`E: ${WEAPONS[nearest.state.weapon].label}`).setPosition(nearest.state.x, nearest.state.y + 36);
+      const what = nearest.state.weapon === LOADOUT ? "Open loadout" : WEAPONS[nearest.state.weapon].label;
+      this.prompt.setText(`E: ${what}`).setPosition(nearest.state.x, nearest.state.y + 36);
     }
   }
 
@@ -244,7 +255,7 @@ class GameScene extends Phaser.Scene {
       return `${active}[${n}] ${WEAPONS[id].label.padEnd(7)} ${String(mag).padStart(2)}/${reserve}`;
     };
     const lines = [
-      slot(1, "pistol", s.pistolMag, "∞"),
+      slot(1, s.secondary, s.secondaryMag, "∞"),
       slot(2, s.primary, s.primaryMag, s.primaryReserve),
     ];
     if (s.reloading) lines.push("  Reloading…");
@@ -279,7 +290,8 @@ class GameScene extends Phaser.Scene {
       body = `${players.map((p) => escapeHtml(p.name)).join(", ")}<br>`
         + (isHost ? "You're the host." : `Waiting for ${escapeHtml(host)} to start…`)
         + (bots ? `<br>${bots} bot${bots === 1 ? "" : "s"} will join when the match starts.` : "")
-        + `<br>Auto-starts at ${AUTO_START_PLAYERS} players.`;
+        + `<br>Auto-starts at ${AUTO_START_PLAYERS} players.`
+        + this.loadoutPicker();
       showStart = isHost;
       canStart = players.length + bots >= MIN_PLAYERS;
       overlay.start.textContent = canStart ? "Start match" : `Need ${MIN_PLAYERS} players`;
@@ -308,6 +320,28 @@ class GameScene extends Phaser.Scene {
     overlay.body.innerHTML = body;
     overlay.start.hidden = !showStart;
     overlay.start.disabled = !canStart;
+  }
+
+  loadoutPicker() {
+    const me = this.me.state;
+    const row = (slot, choices, chosen) => choices.map((id) => {
+      const on = id === chosen;
+      return `<button data-slot="${slot}" data-weapon="${id}" style="margin:4px 3px 0;padding:6px 10px;`
+        + `background:${on ? WEAPONS[id].color : "#333"};color:${on ? "#000" : "#fff"}">${WEAPONS[id].label}</button>`;
+    }).join("");
+    const when = LOADOUT_DROP_PHASE === 0 ? "You spawn with it."
+      : `Secondary at spawn · primary arrives in a loadout drop at zone phase ${LOADOUT_DROP_PHASE}.`;
+    return `<hr style="border-color:#444;margin:12px 0 6px"><b>Loadout</b>`
+      + `<div>Primary: ${row("primary", PRIMARY_CHOICES, me.loadoutPrimary)}</div>`
+      + `<div>Secondary: ${row("secondary", SECONDARY_CHOICES, me.loadoutSecondary)}</div>`
+      + `<div style="font-size:12px;opacity:.8;margin-top:6px">${when}</div>`;
+  }
+
+  announce(text) {
+    const msg = this.add.text(this.scale.width / 2, 80, text, {
+      fontFamily: "monospace", fontSize: "18px", color: "#ffd166", backgroundColor: "#000000cc", padding: { x: 10, y: 6 },
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(11);
+    this.time.delayedCall(5000, () => msg.destroy());
   }
 
   drawZone() {
@@ -356,6 +390,11 @@ class GameScene extends Phaser.Scene {
     g.fillStyle(0x1e3320, 0.9).fillRect(ox, oy, size, size);
     g.lineStyle(2, 0xff5544).strokeCircle(ox + z.x * sx, oy + z.y * sy, z.radius * sx);
     if (z.nextRadius > 0) g.lineStyle(1, 0xffffff).strokeCircle(ox + z.nextX * sx, oy + z.nextY * sy, z.nextRadius * sx);
+    for (const p of this.pickups.values()) {
+      if (p.state.weapon === LOADOUT && p.state.owner === this.room.sessionId) {
+        g.fillStyle(0xf39c12).fillRect(ox + p.state.x * sx - 3, oy + p.state.y * sy - 3, 6, 6);
+      }
+    }
     const focus = this.cameraTarget && this.cameraTarget !== this.me ? this.cameraTarget.container : this.me.pos;
     g.fillStyle(0xffffff).fillCircle(ox + focus.x * sx, oy + focus.y * sy, 3);
     g.lineStyle(1, 0xffffff, 0.6).strokeRect(ox, oy, size, size);
@@ -420,7 +459,7 @@ function escapeHtml(text) {
 }
 
 function activeWeapon(state) {
-  return state.slot === 1 && state.primary ? state.primary : "pistol";
+  return state.slot === 1 && state.primary ? state.primary : state.secondary || "pistol";
 }
 
 window.game = new Phaser.Game({ // exposed for debugging from the console
