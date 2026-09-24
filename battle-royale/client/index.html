@@ -13,6 +13,8 @@
         padding: 20px 24px; border-radius: 10px; background: #000000cc; color: #fff;
         font: 15px monospace; text-align: center; line-height: 1.5;
       }
+      /* Lobby panel sits to the left so your own character (screen centre) stays visible. */
+      #overlay.side { left: 16px; transform: translate(0, -50%); max-width: min(360px, calc(100vw - 32px)); }
       #overlay.corner { top: auto; bottom: 190px; transform: translate(-50%, 0); padding: 8px 14px; min-width: 0; }
       #overlay h1 { margin: 0 0 8px; font-size: 24px; }
       #overlay button {

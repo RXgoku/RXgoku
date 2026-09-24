@@ -2,15 +2,18 @@ import Phaser from "phaser";
 import { Client, Callbacks } from "@colyseus/sdk";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, MAX_INPUT_DT, applyMove,
-  MAX_HEALTH, BULLET_RADIUS, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE,
+  MAX_HEALTH, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE,
 } from "../../server/src/constants.js";
 import { WEAPONS, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "../../server/src/weapons.js";
+import { createTextures, bushLayout, gunLength } from "./art.js";
+import { Sfx } from "./sfx.js";
 
 const INTERP_DELAY_MS = 100; // render remote players this far in the past
 const AIM_SEND_MS = 50;      // how often we tell the server where we're aiming
 const HEALTH_BAR_W = 36;
 const MINIMAP_SIZE = 160;
 const FOG_SEGMENTS = 96;
+const STEP_DIST = 55;      // px walked per footstep sound
 const TELEPORT_DIST = 150; // a jump bigger than this is a teleport (match start), not movement: don't interpolate it
 const serverUrl = import.meta.env.VITE_SERVER_URL
   || (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin);
@@ -36,9 +39,21 @@ class GameScene extends Phaser.Scene {
   }
 
   async create() {
+    createTextures(this);
     this.drawGround();
+    this.sfx = new Sfx();
+    // Audio can only start after a user gesture.
+    const unlock = () => this.sfx.unlock();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    this.hitSparks = this.add.particles(0, 0, "spark", {
+      speed: { min: 60, max: 200 }, lifespan: 280, scale: { start: 1.4, end: 0 }, tint: [0xff3b30, 0xffffff], emitting: false,
+    }).setDepth(6);
     this.zoneGfx = this.add.graphics().setDepth(3);
     this.minimap = this.add.graphics().setScrollFactor(0).setDepth(10);
+    // Clip the minimap so an early, map-sized zone circle doesn't spill past its edges.
+    this.minimapClip = this.make.graphics({}, false).setScrollFactor(0);
+    this.minimap.setMask(this.minimapClip.createGeometryMask());
     this.banner = this.add.text(0, 36, "", {
       fontFamily: "monospace", fontSize: "16px", color: "#ffffff", backgroundColor: "#00000099", padding: { x: 8, y: 4 },
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(10);
@@ -71,6 +86,11 @@ class GameScene extends Phaser.Scene {
         this.me.pos = { x: player.x, y: player.y };
         this.cameras.main.startFollow(avatar.container, true, 0.15, 0.15);
         callbacks.onChange(player, () => this.reconcile(player));
+        callbacks.listen(player, "health", (hp, prev) => {
+          if (prev !== undefined && hp < prev && hp > 0 && !this.inGas()) this.sfx.hurt();
+        });
+        callbacks.listen(player, "reloading", (on) => { if (on) this.sfx.reload(); });
+        callbacks.listen(player, "primary", (w, prev) => { if (w && w !== prev) this.sfx.pickup(); });
       } else {
         avatar.state = player;
         avatar.buffer = [{ t: performance.now(), x: player.x, y: player.y }];
@@ -84,7 +104,8 @@ class GameScene extends Phaser.Scene {
         });
       }
       callbacks.listen(player, "alive", (alive) => {
-        avatar.container.setAlpha(alive ? 1 : 0.25);
+        avatar.container.setAlpha(alive ? 1 : 0.35);
+        avatar.body.setTint(alive ? avatar.color : 0x666666);
         if (avatar === this.me) this.showStatus();
       });
     });
@@ -92,12 +113,18 @@ class GameScene extends Phaser.Scene {
       const crate = pickup.weapon === LOADOUT;
       const mine = pickup.owner === this.room.sessionId;
       const color = crate ? 0xf39c12 : Phaser.Display.Color.HexStringToColor(WEAPONS[pickup.weapon].color).color;
-      const box = crate
-        ? this.add.rectangle(0, 0, 30, 30, color).setStrokeStyle(3, mine ? 0xffffff : 0x000000)
-        : this.add.rectangle(0, 0, 30, 14, color).setStrokeStyle(2, 0x000000);
+      const glow = this.add.circle(0, 0, crate ? 26 : 18, color, crate && !mine ? 0.12 : 0.3);
+      const icon = crate
+        ? this.add.image(0, 0, "crate")
+        : this.add.image(0, 0, `gun_${pickup.weapon}`).setScale(1.4).setRotation(-0.35);
       const text = crate ? (mine ? "YOUR LOADOUT" : "Loadout") : WEAPONS[pickup.weapon].label;
-      const label = this.add.text(0, crate ? 20 : 14, text, { fontFamily: "monospace", fontSize: "10px", color: "#ffffff" }).setOrigin(0.5, 0);
-      this.pickups.set(id, { state: pickup, container: this.add.container(pickup.x, pickup.y, [box, label]).setDepth(1) });
+      const label = this.add.text(0, crate ? 20 : 14, text, {
+        fontFamily: "monospace", fontSize: "10px", color: "#ffffff", stroke: "#000000", strokeThickness: 3,
+      }).setOrigin(0.5, 0);
+      const container = this.add.container(pickup.x, pickup.y, [glow, icon, label]).setDepth(1);
+      this.tweens.add({ targets: icon, y: -3, duration: 700, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      this.tweens.add({ targets: glow, scale: 1.25, alpha: glow.alpha * 0.5, duration: 900, yoyo: true, repeat: -1 });
+      this.pickups.set(id, { state: pickup, container });
     });
     callbacks.onRemove("pickups", (_pickup, id) => {
       this.pickups.get(id)?.container.destroy();
@@ -108,22 +135,39 @@ class GameScene extends Phaser.Scene {
       this.others.delete(id);
     });
 
-    this.room.onMessage("bullets", (list) => list.forEach((b) => this.addBullet(b)));
+    this.room.onMessage("bullets", (volley) => this.onVolley(volley));
     this.room.onMessage("bulletEnd", ({ id, x, y, hit }) => this.removeBullet(id, x, y, hit));
-    this.room.onMessage("kill", ({ killer, victim }) => this.showKill(killer, victim));
+    this.room.onMessage("kill", ({ killer, victim }) => {
+      if (killer === this.me?.state.name) this.sfx.kill();
+      if (victim === this.me?.state.name) this.sfx.death();
+      this.showKill(killer, victim);
+    });
     this.room.onMessage("clearBullets", () => {
       for (const id of [...this.bullets.keys()]) this.removeBullet(id);
     });
-    callbacks.listen("phase", (phase) => {
-      if (phase === "ended") this.endedAt = performance.now();
+    callbacks.listen("phase", (phase, prev) => {
+      if (phase === "ended") {
+        this.endedAt = performance.now();
+        const won = this.room.state.winner === this.me?.state.name && this.me?.state.alive;
+        if (won) this.sfx.victory(); else this.sfx.defeat();
+      }
+      if (phase === "playing" && prev === "countdown") this.sfx.beep(true);
       if (phase !== "playing") this.killedBy = null;
+    });
+    callbacks.listen("countdown", (n) => { if (n > 0 && this.room.state.phase === "countdown") this.sfx.beep(); });
+    callbacks.listen("zone", (zone) => {
+      callbacks.listen(zone, "shrinking", (on) => { if (on && this.room.state.phase === "playing") this.sfx.siren(); });
     });
     overlay.start.addEventListener("click", () => this.room.send("start"));
     overlay.body.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-slot]");
       if (btn) this.room.send("loadout", { [btn.dataset.slot]: btn.dataset.weapon });
     });
-    this.room.onMessage("loadoutDrop", () => this.announce("📦 Your loadout crate landed nearby — press E on it"));
+    this.room.onMessage("loadoutDrop", () => {
+      this.announce("📦 Your loadout crate landed nearby — press E on it");
+      const crate = [...this.pickups.values()].find((p) => p.state.weapon === LOADOUT && p.state.owner === this.room.sessionId);
+      if (crate) this.sfx.crateLanded(crate.state.x, crate.state.y);
+    });
     this.room.onLeave(() => { statusEl.textContent = "Disconnected"; });
 
     const kb = this.input.keyboard;
@@ -131,6 +175,7 @@ class GameScene extends Phaser.Scene {
     kb.on("keydown-R", () => this.me?.state.alive && this.room.send("reload"));
     kb.on("keydown-ONE", () => this.room.send("switch", { slot: 0 }));
     kb.on("keydown-TWO", () => this.room.send("switch", { slot: 1 }));
+    kb.on("keydown-M", () => this.announce(this.sfx.toggleMute() ? "🔇 Sound off (M)" : "🔊 Sound on (M)"));
   }
 
   update(_time, deltaMs) {
@@ -142,6 +187,8 @@ class GameScene extends Phaser.Scene {
     }
     this.updateCamera();
     this.updateOverlay(now);
+    this.updateAudio(now);
+    this.updateBushes();
     this.placeAvatar(this.me, this.me.pos.x, this.me.pos.y, this.me.state);
     this.interpolateOthers(now - INTERP_DELAY_MS);
     this.moveBullets(deltaMs / 1000, now);
@@ -174,6 +221,10 @@ class GameScene extends Phaser.Scene {
     const weaponId = activeWeapon(state);
     const mag = state.slot === 1 && state.primary ? state.primaryMag : state.secondaryMag;
     const canFire = canShoot && !state.reloading && mag > 0;
+    if (pointer.leftButtonDown() && canShoot && !state.reloading && mag === 0 && now - this.lastShot >= 300) {
+      this.lastShot = now;
+      this.sfx.empty();
+    }
     if (pointer.leftButtonDown() && canFire && now - this.lastShot >= WEAPONS[weaponId].cooldownMs) {
       this.lastShot = now;
       this.lastAimSent = now;
@@ -208,9 +259,21 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  addBullet({ id, x, y, vx, vy, life }) {
-    const sprite = this.add.circle(x, y, BULLET_RADIUS, 0xfff3a0).setDepth(5);
-    this.bullets.set(id, { sprite, vx, vy, expires: performance.now() + life });
+  onVolley({ weapon, shooter, x, y, angle, bullets }) {
+    // Sound and flash come from where the shooter is drawn on this screen.
+    const avatar = shooter === this.room.sessionId ? this.me : this.others.get(shooter);
+    const pos = avatar === this.me ? this.me.pos : avatar ? { x: avatar.container.x, y: avatar.container.y } : { x, y };
+    this.sfx.shot(weapon, pos.x, pos.y);
+    const tip = PLAYER_RADIUS + gunLength(weapon);
+    const flash = this.add.image(pos.x + Math.cos(angle) * tip, pos.y + Math.sin(angle) * tip, "flash")
+      .setDepth(6).setRotation(angle).setScale(weapon === "shotgun" || weapon === "sniper" ? 1.5 : 1);
+    this.tweens.add({ targets: flash, alpha: 0, scale: flash.scale * 1.6, duration: 70, onComplete: () => flash.destroy() });
+    for (const b of bullets) this.addBullet(b, shooter);
+  }
+
+  addBullet({ id, x, y, vx, vy, life }, shooter) {
+    const sprite = this.add.image(x, y, "tracer").setDepth(5).setRotation(Math.atan2(vy, vx));
+    this.bullets.set(id, { sprite, vx, vy, shooter, expires: performance.now() + life });
   }
 
   moveBullets(dt, now) {
@@ -222,11 +285,51 @@ class GameScene extends Phaser.Scene {
   }
 
   removeBullet(id, x, y, hit) {
-    this.bullets.get(id)?.sprite.destroy();
+    const bullet = this.bullets.get(id);
+    bullet?.sprite.destroy();
     this.bullets.delete(id);
     if (hit) {
-      const spark = this.add.circle(x, y, 8, 0xff4444).setDepth(6);
-      this.tweens.add({ targets: spark, scale: 2, alpha: 0, duration: 200, onComplete: () => spark.destroy() });
+      this.hitSparks.explode(10, x, y);
+      this.sfx.hit(x, y);
+      if (bullet?.shooter === this.room.sessionId) this.sfx.hitMarker();
+    }
+  }
+
+  updateAudio(now) {
+    const view = this.cameras.main.worldView;
+    this.sfx.setListener(view.centerX, view.centerY);
+    // Footsteps: yours, plus everyone else's so you can hear people nearby.
+    const avatars = [this.me, ...this.others.values()];
+    for (const a of avatars) {
+      const x = a === this.me ? this.me.pos.x : a.container.x;
+      const y = a === this.me ? this.me.pos.y : a.container.y;
+      if (a.lastStepPos && a.state.alive) {
+        a.walked = (a.walked ?? 0) + Math.min(50, Math.hypot(x - a.lastStepPos.x, y - a.lastStepPos.y));
+        if (a.walked >= STEP_DIST) {
+          a.walked = 0;
+          this.sfx.step(x, y, a === this.me ? 0.15 : 0.3);
+        }
+      }
+      a.lastStepPos = { x, y };
+    }
+    // Warning tick every second while you're in the gas.
+    if (this.inGas() && now - (this.lastGasTick ?? 0) >= 1000) {
+      this.lastGasTick = now;
+      this.sfx.zoneTick();
+    }
+  }
+
+  inGas() {
+    const z = this.room.state.zone;
+    return this.room.state.phase === "playing" && this.me.state.alive
+      && Math.hypot(this.me.pos.x - z.x, this.me.pos.y - z.y) > z.radius;
+  }
+
+  // Bushes hide whoever is under them; the one you're standing in turns see-through for you.
+  updateBushes() {
+    for (const bush of this.bushes) {
+      const inside = Math.hypot(bush.x - this.me.pos.x, bush.y - this.me.pos.y) < 34 * bush.scale;
+      bush.setAlpha(inside ? 0.45 : 0.96);
     }
   }
 
@@ -315,6 +418,7 @@ class GameScene extends Phaser.Scene {
     this.overlayKey = key;
     overlay.root.hidden = !title && !body;
     overlay.root.classList.toggle("corner", corner);
+    overlay.root.classList.toggle("side", state.phase === "lobby");
     overlay.title.hidden = !title;
     overlay.title.innerHTML = title;
     overlay.body.innerHTML = body;
@@ -386,6 +490,7 @@ class GameScene extends Phaser.Scene {
     const oy = this.scale.height - size - 12;
     const sx = size / MAP_WIDTH;
     const sy = size / MAP_HEIGHT;
+    this.minimapClip.clear().fillStyle(0xffffff).fillRect(ox, oy, size, size);
     const g = this.minimap.clear();
     g.fillStyle(0x1e3320, 0.9).fillRect(ox, oy, size, size);
     g.lineStyle(2, 0xff5544).strokeCircle(ox + z.x * sx, oy + z.y * sy, z.radius * sx);
@@ -410,29 +515,31 @@ class GameScene extends Phaser.Scene {
   }
 
   showStatus() {
-    statusEl.textContent = `${this.name} — WASD move, mouse aim, click shoot, E pick up, R reload, 1/2 switch`;
+    statusEl.textContent = `${this.name} — WASD move, mouse aim, click shoot, E pick up, R reload, 1/2 switch, M mute`;
   }
 
   makeAvatar(player) {
     const color = Phaser.Display.Color.HexStringToColor(player.color).color;
-    const barrel = this.add.rectangle(0, 0, PLAYER_RADIUS + 10, 6, 0x222222).setOrigin(0, 0.5);
-    const body = this.add.circle(0, 0, PLAYER_RADIUS, color).setStrokeStyle(2, 0x000000);
+    const shadow = this.add.image(2, 4, "shadow");
+    const body = this.add.image(0, 0, "soldier").setTint(color);
+    const gun = this.add.image(10, 0, "gun_pistol").setOrigin(0, 0.5);
+    const helmet = this.add.image(-1, 0, "helmet");
+    const rig = this.add.container(0, 0, [body, gun, helmet]); // rotates with aim
     const bar = this.add.graphics();
     const label = this.add.text(0, -40, player.name, {
-      fontFamily: "monospace", fontSize: "12px", color: "#ffffff",
+      fontFamily: "monospace", fontSize: "12px", color: "#ffffff", stroke: "#000000", strokeThickness: 3,
     }).setOrigin(0.5);
-    const container = this.add.container(player.x, player.y, [barrel, body, bar, label]).setDepth(2);
-    return { container, body, barrel, bar, label, angle: player.angle, drawnHealth: -1, drawnWeapon: "" };
+    const container = this.add.container(player.x, player.y, [shadow, rig, bar, label]).setDepth(2);
+    return { container, rig, body, gun, bar, label, color, angle: player.angle, drawnHealth: -1, drawnWeapon: "" };
   }
 
   placeAvatar(avatar, x, y, state) {
     avatar.container.setPosition(x, y);
-    avatar.barrel.setRotation(avatar === this.me ? avatar.angle : state.angle);
+    avatar.rig.setRotation(avatar === this.me ? avatar.angle : state.angle);
     const weaponId = activeWeapon(state);
     if (avatar.drawnWeapon !== weaponId) {
       avatar.drawnWeapon = weaponId;
-      const w = WEAPONS[weaponId];
-      avatar.barrel.setSize(PLAYER_RADIUS + w.barrel, 6).setFillStyle(Phaser.Display.Color.HexStringToColor(w.color).color);
+      avatar.gun.setTexture(`gun_${weaponId}`);
     }
     if (avatar.drawnHealth !== state.health) {
       avatar.drawnHealth = state.health;
@@ -445,12 +552,10 @@ class GameScene extends Phaser.Scene {
   }
 
   drawGround() {
-    const g = this.add.graphics();
-    g.fillStyle(0x2d4a2b).fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-    g.lineStyle(1, 0x3b5e38);
-    for (let i = 0; i <= MAP_WIDTH; i += 100) g.lineBetween(i, 0, i, MAP_HEIGHT);
-    for (let i = 0; i <= MAP_HEIGHT; i += 100) g.lineBetween(0, i, MAP_WIDTH, i);
-    g.lineStyle(4, 0xff0000).strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+    this.add.tileSprite(0, 0, MAP_WIDTH, MAP_HEIGHT, "grass").setOrigin(0).setDepth(0);
+    this.add.graphics().setDepth(0).lineStyle(8, 0x1a2e17).strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+    this.bushes = bushLayout(MAP_WIDTH, MAP_HEIGHT).map((b) =>
+      this.add.image(b.x, b.y, "bush").setScale(b.scale).setAngle(b.angle).setDepth(2.5));
   }
 }
 

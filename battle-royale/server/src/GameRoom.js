@@ -299,7 +299,7 @@ export class GameRoom extends Room {
     for (let i = 0; i < w.pellets; i++) {
       spawned.push(this.spawnBullet(id, player, angle + (Math.random() * 2 - 1) * w.spread, w, now));
     }
-    this.broadcast("bullets", spawned);
+    this.broadcast("bullets", { weapon: weaponId, shooter: id, x: player.x, y: player.y, angle, bullets: spawned });
     if (player[magKey] === 0) this.startReload(id);
   }
 

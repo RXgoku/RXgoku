@@ -10,7 +10,11 @@ npm run dev:server   # terminal 1, ws on :2567
 npm run dev:client   # terminal 2, open the URL Vite prints
 ```
 
-Controls: WASD move, mouse aim, hold left click shoot, E pick up/swap weapon, R reload, 1/2 switch slot.
+Controls: WASD move, mouse aim, hold left click shoot, E pick up/swap weapon, R reload, 1/2 switch slot, M mute.
+
+Art and sound are generated in code (`client/src/art.js`, `client/src/sfx.js`), so there are no
+asset files to download or license. Sounds are positional (quieter with distance, panned left/right).
+Bushes hide anyone standing in them; the bush you're in turns see-through for you only.
 
 Weapons are plain data in `server/src/weapons.js` (damage, fire rate, spread, pellets, magazine,
 reload time, spawn weight). Edit numbers there to rebalance; both server and client read it.
