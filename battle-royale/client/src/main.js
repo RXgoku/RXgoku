@@ -274,12 +274,14 @@ class GameScene extends Phaser.Scene {
     if (state.phase === "lobby") {
       const isHost = state.hostId === this.room.sessionId;
       const host = state.players.get(state.hostId)?.name ?? "?";
+      const bots = Math.max(0, state.botFill - players.length);
       title = `Lobby · ${players.length} player${players.length === 1 ? "" : "s"}`;
       body = `${players.map((p) => escapeHtml(p.name)).join(", ")}<br>`
         + (isHost ? "You're the host." : `Waiting for ${escapeHtml(host)} to start…`)
+        + (bots ? `<br>${bots} bot${bots === 1 ? "" : "s"} will join when the match starts.` : "")
         + `<br>Auto-starts at ${AUTO_START_PLAYERS} players.`;
       showStart = isHost;
-      canStart = players.length >= MIN_PLAYERS;
+      canStart = players.length + bots >= MIN_PLAYERS;
       overlay.start.textContent = canStart ? "Start match" : `Need ${MIN_PLAYERS} players`;
     } else if (state.phase === "countdown") {
       title = `Dropping in ${state.countdown}…`;

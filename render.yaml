@@ -14,3 +14,5 @@ services:
         value: "22"
       - key: ZONE_TIME_SCALE # 1 = ~4 minute match; raise it for shorter demo matches
         value: "1"
+      - key: BOTS # bots fill each match up to this many players; 0 disables
+        value: "10"

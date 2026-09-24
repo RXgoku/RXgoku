@@ -16,6 +16,7 @@ export const Player = schema({
   primaryReserve: t.uint16(),
   reloading: t.boolean(),
   kills: t.uint8(),
+  bot: t.boolean(),
 }, "Player");
 
 export const Pickup = schema({
@@ -50,4 +51,5 @@ export const GameState = schema({
   countdown: t.uint8(),
   aliveCount: t.uint8(),
   winner: t.string(),    // name of the last player standing ("" = nobody survived)
+  botFill: t.uint8(),    // bots top the match up to this many players at start
 }, "GameState");

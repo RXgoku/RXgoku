@@ -7,10 +7,14 @@ import {
 } from "./constants.js";
 import { WEAPONS, randomPickupWeapon } from "./weapons.js";
 import { ZoneController } from "./zone.js";
+import { BotBrain, BOT_NAMES } from "./bots.js";
 
 const COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#ecf0f1"];
 const MAX_QUEUED_INPUTS = 60;
 const MAX_TIME_BUDGET = 0.25; // seconds of movement a client may bank
+// Bots fill each match up to this many players (BOTS=0 disables them).
+const BOT_FILL = Math.max(0, Math.min(20, Number(process.env.BOTS ?? 10)));
+const SPAWN_SPACING = 350; // px; try to keep spawns at least this far apart
 
 export class GameRoom extends Room {
   maxClients = 20;
@@ -27,6 +31,9 @@ export class GameRoom extends Room {
     this.nextBulletId = 1;
     this.nextPickupId = 1;
     this.phaseTimer = null;
+    this.brains = new Map(); // bot id -> BotBrain
+    this.nextBotId = 1;
+    this.state.botFill = BOT_FILL;
     this.toLobby();
 
     // Clients send key state + frame time; the server applies it and owns the result.
@@ -84,9 +91,9 @@ export class GameRoom extends Room {
     this.state.players.delete(client.sessionId);
     this.sessions.delete(client.sessionId);
     if (this.state.hostId === client.sessionId) {
-      this.state.hostId = this.state.players.keys().next().value ?? "";
+      this.state.hostId = [...this.state.players.entries()].find(([, p]) => !p.bot)?.[0] ?? "";
     }
-    if (this.state.phase === "countdown" && this.state.players.size < MIN_PLAYERS) this.toLobby();
+    if (this.state.phase === "countdown" && Math.max(this.state.players.size, BOT_FILL) < MIN_PLAYERS) this.toLobby();
     if (this.state.phase === "playing") this.checkWinner();
   }
 
@@ -95,8 +102,44 @@ export class GameRoom extends Room {
     return COLORS.find((c) => !used.has(c)) ?? COLORS[this.state.players.size % COLORS.length];
   }
 
-  resetPlayer(player) {
-    const spot = this.zone.randomPointInside(PLAYER_RADIUS);
+  addBot() {
+    const n = this.nextBotId++;
+    const id = `bot${n}`;
+    const player = new Player();
+    player.bot = true;
+    player.name = `${BOT_NAMES[(n - 1) % BOT_NAMES.length]} [bot]`;
+    player.color = this.freeColor();
+    player.lastSeq = 0;
+    player.angle = 0;
+    this.sessions.set(id, { inputs: [], budget: 0, lastShot: -Infinity, reloadTimer: null });
+    this.brains.set(id, new BotBrain(id));
+    this.state.players.set(id, player);
+  }
+
+  removeBots() {
+    for (const id of this.brains.keys()) {
+      this.cancelReload(id);
+      this.state.players.delete(id);
+      this.sessions.delete(id);
+    }
+    this.brains.clear();
+  }
+
+  // Best of several random spots: the one furthest from spawns already taken.
+  spawnPoint(taken) {
+    let best = null;
+    let bestDist = -1;
+    for (let i = 0; i < 40 && bestDist < SPAWN_SPACING; i++) {
+      const spot = this.zone.randomPointInside(PLAYER_RADIUS * 4);
+      const d = Math.min(Infinity, ...taken.map((t) => Math.hypot(t.x - spot.x, t.y - spot.y)));
+      if (d > bestDist) { best = spot; bestDist = d; }
+    }
+    taken.push(best);
+    return best;
+  }
+
+  resetPlayer(player, taken = []) {
+    const spot = this.spawnPoint(taken);
     player.x = spot.x;
     player.y = spot.y;
     player.health = MAX_HEALTH;
@@ -125,9 +168,11 @@ export class GameRoom extends Room {
     this.zone.reset();
     this.clearBullets();
     this.state.pickups.clear();
+    this.removeBots();
+    const taken = [];
     this.state.players.forEach((player, id) => {
       this.cancelReload(id);
-      this.resetPlayer(player);
+      this.resetPlayer(player, taken);
     });
     this.state.aliveCount = this.state.players.size;
     this.unlock();
@@ -135,7 +180,8 @@ export class GameRoom extends Room {
   }
 
   startCountdown() {
-    if (this.state.phase !== "lobby" || this.state.players.size < MIN_PLAYERS) return;
+    const enough = Math.max(this.state.players.size, BOT_FILL) >= MIN_PLAYERS;
+    if (this.state.phase !== "lobby" || !enough) return;
     this.lock(); // late joiners get a fresh room instead of landing mid-match
     this.state.phase = "countdown";
     this.state.countdown = COUNTDOWN_S;
@@ -149,6 +195,7 @@ export class GameRoom extends Room {
 
   startMatch() {
     this.state.phase = "playing";
+    this.matchStartedAt = this.clock.currentTime;
     this.clearBullets();
     this.state.pickups.clear();
     for (let i = 0; i < PICKUP_COUNT; i++) {
@@ -156,9 +203,11 @@ export class GameRoom extends Room {
       this.dropPickup(id, randomCoord(MAP_WIDTH), randomCoord(MAP_HEIGHT), WEAPONS[id].magSize, WEAPONS[id].reserve);
     }
     this.zone.start(this.clock.currentTime);
+    while (this.state.players.size < BOT_FILL) this.addBot();
+    const taken = [];
     this.state.players.forEach((player, id) => {
       this.cancelReload(id);
-      this.resetPlayer(player);
+      this.resetPlayer(player, taken);
     });
     this.state.aliveCount = this.state.players.size;
   }
@@ -166,9 +215,14 @@ export class GameRoom extends Room {
   checkWinner() {
     const alive = [...this.state.players.values()].filter((p) => p.alive);
     this.state.aliveCount = alive.length;
-    if (this.state.phase !== "playing" || alive.length > 1) return;
+    if (this.state.phase !== "playing") return;
+    // Last one standing wins. If every human is out, don't make them watch bots:
+    // end now and crown the best surviving bot.
+    const humansAlive = alive.some((p) => !p.bot);
+    if (alive.length > 1 && humansAlive) return;
+    const best = alive.sort((a, b) => b.kills - a.kills || b.health - a.health)[0];
     this.state.phase = "ended";
-    this.state.winner = alive[0]?.name ?? "";
+    this.state.winner = best?.name ?? "";
     this.clearBullets();
     this.setPhaseTimer(() => this.toLobby(), END_SCREEN_S * 1000);
   }
@@ -296,6 +350,13 @@ export class GameRoom extends Room {
 
   update(deltaMs) {
     this.movePlayers(deltaMs);
+    if (this.state.phase === "playing") {
+      const now = this.clock.currentTime;
+      this.brains.forEach((brain, id) => {
+        const player = this.state.players.get(id);
+        if (player) brain.update(this, player, deltaMs, now);
+      });
+    }
     this.moveBullets(deltaMs);
     this.updateZone();
   }

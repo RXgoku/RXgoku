@@ -20,6 +20,12 @@ Match flow: everyone waits in a lobby, the host (first player in) presses **Star
 respawns, eliminated players spectate, and the last one alive wins. The winner screen shows kills,
 then everyone returns to the lobby after 10s. Match settings live in `server/src/constants.js`.
 
+Bots: when the host starts, server-side bots fill the match up to 10 players, so one person can
+play alone. They loot guns, avoid the zone, and fight anyone within half a screen, with a short
+reaction delay and aim error. If every human is eliminated the match ends straight away and the
+best surviving bot is shown as the winner. Set `BOTS=0` to disable them or `BOTS=6` for fewer.
+Tuning lives at the top of `server/src/bots.js`.
+
 Open two tabs to see two players. Add `?name=Alice` to the URL to set a name.
 Other devices on the same Wi-Fi can join using the "Network" URL Vite prints.
 
