@@ -114,6 +114,14 @@ export class Sfx {
     if (dest) this.noise(dest, { type: "bandpass", freq: 700, dur: 0.08, vol: 0.6 });
   }
 
+  // A bullet hitting cover.
+  impact(x, y) {
+    const dest = this.out(x, y, 0.6);
+    if (!dest) return;
+    this.noise(dest, { type: "highpass", freq: 2500, dur: 0.05, vol: 0.5 });
+    this.noise(dest, { type: "bandpass", freq: 900, dur: 0.1, vol: 0.4 });
+  }
+
   hitMarker() {
     const dest = this.out();
     if (dest) this.tone(dest, { wave: "triangle", f0: 1500, dur: 0.05, vol: 0.25 });

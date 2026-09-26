@@ -16,6 +16,7 @@ No download and no account: open the link and play. Bring your friends into the 
 - **Never an empty lobby.** Server-side bots fill every match up to 10 players. They loot, flee the zone, and fight with human-like reaction time and aim error, and they only engage within about half a screen, so they don't snipe you from off-screen.
 - **A Warzone-style loadout drop.** Pick your guns in the lobby. You start with your sidearm and loot like everyone else, and mid-match a crate only you can open lands next to you with your primary.
 - **Zero asset files.** Every 3D model, texture and sound is generated in code when the game starts. The whole game is about 2,200 lines of JavaScript and a 192 KB download (gzipped).
+- **Real cover.** 56 pieces of cover (walls, shipping containers and rocks), the same on every screen. They block movement and bullets, bots won't shoot at you through them, and the 3D camera pulls in front of walls instead of sinking into them.
 - **Positional audio.** Footsteps and gunshots get louder as they get closer and pan left or right, so you can hear a fight before you see it.
 
 **Prefer the original top-down version?** It's still at [`/2d.html`](https://battle-royale-ri8x.onrender.com/2d.html), and both versions can play in the same match.
@@ -98,7 +99,6 @@ flowchart LR
 ## What's next
 
 - **Lag compensation:** rewind hit boxes to what the shooter saw, so leading targets isn't needed on high ping.
-- **Cover:** walls and rocks that block movement and bullets.
 - **Squads:** duos and quads with revives.
 - **Touch controls:** the game is desktop-only today.
 
@@ -160,6 +160,7 @@ battle-royale/
 │   ├── zone.js        shrinking zone
 │   ├── weapons.js     weapon stats (shared with the client)
 │   ├── constants.js   shared movement code and match settings
+│   ├── map.js         seeded cover layout, collision and line-of-fire tests (shared)
 │   └── schema.js      synced state definitions
 ├── client/src/
 │   ├── 3d/main.js     3D game: prediction, interpolation, camera, aiming, HUD

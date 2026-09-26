@@ -4,8 +4,9 @@ import * as THREE from "three";
 import { Client, Callbacks } from "@colyseus/sdk";
 import {
   MAP_WIDTH, MAX_INPUT_DT, applyMove, MAX_HEALTH, PICKUP_RANGE,
-  MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE,
+  MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE, OBSTACLES,
 } from "../../../server/src/constants.js";
+import { segmentObstacleT } from "../../../server/src/map.js";
 import { WEAPONS, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "../../../server/src/weapons.js";
 import { Sfx } from "../sfx.js";
 import { createWorld, SCALE } from "./world.js";
@@ -69,6 +70,7 @@ class Game {
     this.flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true });
     this.sparkGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
     this.sparkMats = [new THREE.MeshBasicMaterial({ color: 0xff3b30 }), new THREE.MeshBasicMaterial({ color: 0xffffff })];
+    this.dustMat = new THREE.MeshBasicMaterial({ color: 0xb8a98c });
 
     this.bindInput();
     this.resize();
@@ -175,7 +177,7 @@ class Game {
     });
 
     this.room.onMessage("bullets", (volley) => this.onVolley(volley));
-    this.room.onMessage("bulletEnd", ({ id, x, y, hit }) => this.removeBullet(id, x, y, hit));
+    this.room.onMessage("bulletEnd", ({ id, x, y, hit, wall }) => this.removeBullet(id, x, y, hit, wall));
     this.room.onMessage("kill", ({ killer, victim }) => {
       if (killer === this.me?.state.name) this.sfx.kill();
       if (victim === this.me?.state.name) {
@@ -256,34 +258,33 @@ class Game {
     }
   }
 
-  // Aim where the crosshair points. If the crosshair is over a player, shoot at them;
-  // otherwise cast the camera ray to chest height. Either way the shot leaves from your
+  // Aim where the crosshair points: at the player under it, else at the cover it's on,
+  // else where the camera ray reaches chest height. Either way the shot leaves from your
   // position, so the shoulder offset doesn't throw it off.
   aimAngle() {
     const camPos = this.camera.position;
     this.camera.getWorldDirection(tmpDir);
-    let tx, tz;
-    const target = this.playerUnderCrosshair(camPos, tmpDir);
-    if (target) {
-      tx = target.px.x * SCALE;
-      tz = target.px.y * SCALE;
-    } else if (tmpDir.y < -0.01) {
-      const t = (BULLET_HEIGHT - camPos.y) / tmpDir.y;
-      tx = camPos.x + tmpDir.x * t;
-      tz = camPos.z + tmpDir.z * t;
-    }
+    const FAR = 150;
+    const wallT = FAR * segmentObstacleT(camPos.x / SCALE, camPos.z / SCALE,
+      (camPos.x + tmpDir.x * FAR) / SCALE, (camPos.z + tmpDir.z * FAR) / SCALE, OBSTACLES);
+    let t = Math.min(wallT, FAR);
+    const target = this.playerUnderCrosshair(camPos, tmpDir, wallT);
+    if (tmpDir.y < -0.01) t = Math.min(t, (BULLET_HEIGHT - camPos.y) / tmpDir.y);
+    let tx = target ? target.px.x * SCALE : camPos.x + tmpDir.x * t;
+    let tz = target ? target.px.y * SCALE : camPos.z + tmpDir.z * t;
     const px = this.me.pos.x * SCALE, pz = this.me.pos.y * SCALE;
-    if (tx === undefined || Math.hypot(tx - px, tz - pz) < 2) {
-      tx = camPos.x + tmpDir.x * 150;
-      tz = camPos.z + tmpDir.z * 150;
+    if (Math.hypot(tx - px, tz - pz) < 2) { // too close to trust the angle: shoot where you face
+      tx = px + Math.cos(this.yaw);
+      tz = pz + Math.sin(this.yaw);
     }
     return Math.atan2(tz - pz, tx - px);
   }
 
-  // Nearest living player whose body (a 0.8-unit-radius, 2-unit-tall cylinder) the camera ray hits.
-  playerUnderCrosshair(origin, dir) {
+  // Nearest living player whose body (a 0.8-unit-radius, 2-unit-tall cylinder) the camera
+  // ray hits before maxT (where cover blocks the ray).
+  playerUnderCrosshair(origin, dir, maxT = Infinity) {
     const flat = Math.hypot(dir.x, dir.z) || 1;
-    let best = null, bestT = Infinity;
+    let best = null, bestT = maxT;
     for (const o of this.others.values()) {
       if (!o.state.alive || !o.px) continue;
       const ox = o.px.x * SCALE - origin.x, oz = o.px.y * SCALE - origin.z;
@@ -384,6 +385,10 @@ class Game {
     const look = new THREE.Vector3(p.x * SCALE + rightX * rig.shoulder, 1.65, p.y * SCALE + rightZ * rig.shoulder);
     const dir = new THREE.Vector3(Math.cos(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.sin(yaw) * Math.cos(pitch));
     this.camera.position.copy(look).addScaledVector(dir, -rig.dist);
+    // Don't let the camera sink into cover behind you: pull it in front of the wall.
+    const hit = segmentObstacleT(look.x / SCALE, look.z / SCALE,
+      this.camera.position.x / SCALE, this.camera.position.z / SCALE, OBSTACLES, 6);
+    if (hit <= 1) this.camera.position.lerpVectors(look, this.camera.position, Math.max(0.05, hit * 0.9));
     this.camera.position.y = Math.max(0.4, this.camera.position.y);
     this.camera.lookAt(look.x + dir.x * 10, look.y + dir.y * 10, look.z + dir.z * 10);
     this.world.followSun(p.x * SCALE, p.y * SCALE);
@@ -421,10 +426,21 @@ class Game {
     }
   }
 
-  removeBullet(id, x, y, hit) {
+  removeBullet(id, x, y, hit, wall) {
     const bullet = this.bullets.get(id);
     if (bullet) this.scene.remove(bullet.mesh);
     this.bullets.delete(id);
+    if (wall) { // puff of dust where cover stopped the bullet
+      for (let i = 0; i < 6; i++) {
+        const dust = new THREE.Mesh(this.sparkGeo, this.dustMat);
+        dust.position.set(x * SCALE, BULLET_HEIGHT, y * SCALE);
+        dust.scale.setScalar(1.5);
+        dust.userData.v = new THREE.Vector3((Math.random() - 0.5) * 3, Math.random() * 3, (Math.random() - 0.5) * 3);
+        this.scene.add(dust);
+        this.effects.push({ mesh: dust, life: 0.4, max: 0.4 });
+      }
+      this.sfx.impact(x, y);
+    }
     if (!hit) return;
     for (let i = 0; i < 10; i++) {
       const spark = new THREE.Mesh(this.sparkGeo, this.sparkMats[i % 2]);
@@ -609,6 +625,11 @@ class Game {
     const g = this.minimapCtx, size = ui.minimap.width, k = size / MAP_WIDTH;
     const z = this.room.state.zone;
     g.clearRect(0, 0, size, size);
+    g.fillStyle = "#9a978f"; // cover
+    for (const o of OBSTACLES) {
+      if (o.type === "rock") { g.beginPath(); g.arc(o.x * k, o.y * k, Math.max(1.5, o.r * k), 0, Math.PI * 2); g.fill(); }
+      else g.fillRect(o.x * k, o.y * k, Math.max(1.5, o.w * k), Math.max(1.5, o.h * k));
+    }
     g.lineWidth = 2;
     g.strokeStyle = "#ff5544";
     g.beginPath(); g.arc(z.x * k, z.y * k, z.radius * k, 0, Math.PI * 2); g.stroke();

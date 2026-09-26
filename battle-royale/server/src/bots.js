@@ -1,5 +1,6 @@
-import { applyMove, PICKUP_RANGE, MAX_INPUT_DT } from "./constants.js";
+import { applyMove, PICKUP_RANGE, MAX_INPUT_DT, OBSTACLES } from "./constants.js";
 import { WEAPONS } from "./weapons.js";
+import { circleHitsObstacle, segmentObstacleT } from "./map.js";
 
 export const BOT_NAMES = ["Viper", "Ghost", "Rook", "Nova", "Blaze", "Echo", "Jinx", "Talon", "Frost", "Havoc", "Onyx", "Rex"];
 
@@ -33,7 +34,7 @@ export class BotBrain {
     }
 
     const target = this.targetId && room.state.players.get(this.targetId);
-    if (this.goal) this.moveTowards(player, this.goal, deltaMs / 1000);
+    if (this.goal) this.moveTowards(player, this.goal, deltaMs / 1000, now);
 
     if (!player.primary && this.nearestPickup(room, player, PICKUP_RANGE)) room.pickUp(this.id);
 
@@ -72,7 +73,10 @@ export class BotBrain {
       this.goal = { x: this.pickupGoal.x, y: this.pickupGoal.y };
     } else {
       if (!this.waypoint || now >= this.waypointUntil || near(player, this.waypoint, 30)) {
-        this.waypoint = randomPointInCircle(zone.nextX, zone.nextY, Math.max(0, zone.nextRadius - 60));
+        for (let i = 0; i < 10; i++) { // prefer a spot that isn't inside cover
+          this.waypoint = randomPointInCircle(zone.nextX, zone.nextY, Math.max(0, zone.nextRadius - 60));
+          if (!circleHitsObstacle(this.waypoint.x, this.waypoint.y, 30, OBSTACLES)) break;
+        }
         this.waypointUntil = now + WAYPOINT_MS;
       }
       this.goal = this.waypoint;
@@ -100,7 +104,10 @@ export class BotBrain {
     room.state.players.forEach((other, id) => {
       if (id === this.id || !other.alive) return;
       const d = Math.hypot(other.x - player.x, other.y - player.y);
-      if (d <= SIGHT && (!best || d < best.d)) best = { id, player: other, d };
+      if (d > SIGHT || (best && d >= best.d)) return;
+      // No shooting through cover: the target has to be in the open from here.
+      if (segmentObstacleT(player.x, player.y, other.x, other.y, OBSTACLES) <= 1) return;
+      best = { id, player: other, d };
     });
     return best;
   }
@@ -116,11 +123,25 @@ export class BotBrain {
     return best;
   }
 
-  moveTowards(player, goal, dt) {
+  // Head for the goal; if cover blocks the way, sidestep along it for a moment.
+  moveTowards(player, goal, dt, now) {
     const dx = goal.x - player.x, dy = goal.y - player.y;
-    const input = { right: dx > 6, left: dx < -6, down: dy > 6, up: dy < -6, dt: Math.min(dt, MAX_INPUT_DT) };
+    const dist = Math.hypot(dx, dy);
+    if (dist < 6) return;
+    let mx = dx / dist, my = dy / dist;
+    if (now < this.detourUntil) {
+      mx = this.detour.x;
+      my = this.detour.y;
+    }
+    const input = { mx, my, dt: Math.min(dt, MAX_INPUT_DT) };
     const pos = { x: player.x, y: player.y };
     applyMove(pos, input);
+    const moved = Math.hypot(pos.x - player.x, pos.y - player.y);
+    if (moved < 250 * input.dt * 0.3 && !(now < this.detourUntil)) {
+      const side = Math.random() < 0.5 ? 1 : -1;
+      this.detour = { x: -my * side, y: mx * side };
+      this.detourUntil = now + 500 + Math.random() * 500;
+    }
     player.x = pos.x;
     player.y = pos.y;
     if (!this.targetId && (dx || dy)) player.angle = Math.atan2(dy, dx);
