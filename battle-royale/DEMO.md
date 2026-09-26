@@ -24,18 +24,20 @@ Timings assume `ZONE_TIME_SCALE=3`. **Bold** is what you do; quotes are what you
 
 | Time | Do | Say |
 |---|---|---|
-| 0:00 | **QR slide + game lobby on screen** | "Battle royales like Warzone are a hundred-gigabyte download. This is **Last Circle**, a battle royale that runs in a browser tab. Scan the code, and you're in my lobby right now." |
+| 0:00 | **QR slide + game lobby on screen** | "Battle royales like Warzone are a hundred-gigabyte download. This is **Last Circle**, a 3D battle royale that runs in a browser tab. Scan the code, and you're in my lobby right now." |
 | 0:10 | **Click Shotgun, then Revolver** in the loadout panel | "I pick my loadout here. I spawn with my sidearm, and my main gun arrives mid-match in a crate only I can open, just like Warzone's loadout drop." |
 | 0:18 | **Click Start match** | "Anyone who didn't join, bots fill in. It works with one player or twenty." |
-| 0:21 | **Drop in. Walk to the nearest gun, press E, and fight the closest player** | "Every shot is simulated on the server, so the browser can't cheat the fire rate or teleport." |
+| 0:21 | **Click the game to lock the mouse, then drop in. Walk to the nearest gun, press E, and fight the closest player** | "Every shot is simulated on the server, so the browser can't cheat the fire rate or teleport." |
 | 0:34 | **Siren plays. Head towards the white circle** | "That siren is the zone closing. Outside it you take damage, and it gets worse every phase." |
 | 0:44 | **Crate lands next to you. Walk onto it and press E** | "And there's my loadout drop. Shotgun, full ammo." |
-| 0:52 | **Keep playing while you close** | "Every sprite and every sound you just heard is generated in code: zero asset files and a 368-kilobyte download. That's Last Circle. Thank you." |
+| 0:52 | **Keep playing while you close** | "Every sprite and every sound you just heard is generated in code: zero asset files and a 192-kilobyte download. That's Last Circle. Thank you." |
 
 ## If something goes wrong
 
+
 | Problem | What to do |
 |---|---|
+| **The mouse doesn't turn the camera** | Click inside the game once. The browser only hands the game the mouse after a click, and **Esc** gives it back, which you need to click the lobby buttons. |
 | **You die before 0:44** | Say *"And when you're out, you spectate whoever got you."* Then skip straight to the 0:52 closing line. With no other humans alive the match ends by itself, which is fine. |
 | **Page won't load / Wi-Fi is down** | Play the backup video and say the same lines over it. |
 | **Page loads but says "Could not connect"** | The server is still waking up. Talk through the 0:00 and 0:10 lines, then refresh. |

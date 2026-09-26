@@ -5,17 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Last Circle</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
-      #status { position: fixed; top: 8px; left: 8px; color: #fff; font: 14px monospace; z-index: 1; }
+      html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden; font-family: monospace; color: #fff; }
+      canvas#game { display: block; width: 100vw; height: 100vh; }
+      .panel { background: #000000a6; border-radius: 6px; padding: 6px 10px; }
+      #status { position: fixed; top: 8px; left: 8px; font-size: 13px; z-index: 3; text-shadow: 0 1px 2px #000; }
+      #banner { position: fixed; top: 36px; left: 50%; transform: translateX(-50%); font-size: 16px; z-index: 3; white-space: nowrap; }
+      #announce { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); font-size: 18px; color: #ffd166; z-index: 3; }
+      #killfeed { position: fixed; top: 10px; right: 10px; z-index: 3; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; font-size: 14px; }
+      #weapons { position: fixed; left: 12px; bottom: 12px; z-index: 3; font-size: 16px; white-space: pre; line-height: 1.4; }
+      #health { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(320px, 60vw); height: 14px; z-index: 3;
+                background: #000000a6; border-radius: 7px; overflow: hidden; border: 1px solid #ffffff40; }
+      #health > div { height: 100%; width: 100%; background: #2ecc71; transition: width .15s, background .15s; }
+      #minimap { position: fixed; right: 12px; bottom: 12px; z-index: 3; border: 1px solid #ffffff60; border-radius: 4px; background: #1e3320e6; }
+      #crosshair { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; }
+      #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 2px #000; }
+      #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+      #crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; }
+      #crosshair.hit::before, #crosshair.hit::after { background: #ff4d4d; }
+      #prompt { position: fixed; left: 50%; top: calc(50% + 40px); transform: translateX(-50%); z-index: 3; font-size: 14px; }
+      #vignette { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .2s;
+                  box-shadow: inset 0 0 160px 40px #c0392b; }
+      #lookhint { position: fixed; left: 50%; top: calc(50% - 60px); transform: translateX(-50%); z-index: 3; font-size: 14px; }
       #overlay {
-        position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
+        position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
         min-width: 280px; max-width: calc(100vw - 32px); box-sizing: border-box;
         padding: 20px 24px; border-radius: 10px; background: #000000cc; color: #fff;
         font: 15px monospace; text-align: center; line-height: 1.5;
       }
       /* Lobby panel sits to the left so your own character (screen centre) stays visible. */
       #overlay.side { left: 16px; transform: translate(0, -50%); max-width: min(360px, calc(100vw - 32px)); }
-      #overlay.corner { top: auto; bottom: 190px; transform: translate(-50%, 0); padding: 8px 14px; min-width: 0; }
+      #overlay.corner { top: auto; bottom: 60px; transform: translate(-50%, 0); padding: 8px 14px; min-width: 0; }
       #overlay h1 { margin: 0 0 8px; font-size: 24px; }
       #overlay button {
         margin-top: 12px; padding: 10px 22px; border: 0; border-radius: 6px; font: bold 16px monospace;
@@ -26,12 +45,23 @@
     </style>
   </head>
   <body>
+    <canvas id="game"></canvas>
     <div id="status">Connecting…</div>
+    <div id="banner" class="panel" hidden></div>
+    <div id="announce" class="panel" hidden></div>
+    <div id="killfeed"></div>
+    <div id="weapons" class="panel"></div>
+    <div id="health"><div></div></div>
+    <canvas id="minimap" width="160" height="160"></canvas>
+    <div id="crosshair"></div>
+    <div id="prompt" class="panel" hidden></div>
+    <div id="lookhint" class="panel" hidden>Click the game to aim · Esc frees the mouse</div>
+    <div id="vignette"></div>
     <div id="overlay" hidden>
       <h1 id="overlay-title"></h1>
       <div id="overlay-body"></div>
       <button id="start-btn" hidden>Start match</button>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/3d/main.js"></script>
   </body>
 </html>
