@@ -3,8 +3,9 @@ import { GameState, Player, Pickup, Zone } from "./schema.js";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, TICK_MS, MAX_INPUT_DT, applyMove,
   MAX_HEALTH, BULLET_RADIUS, PICKUP_COUNT, PICKUP_RANGE,
-  MIN_PLAYERS, AUTO_START_PLAYERS, COUNTDOWN_S, END_SCREEN_S, LOADOUT_DROP_PHASE,
+  MIN_PLAYERS, AUTO_START_PLAYERS, COUNTDOWN_S, END_SCREEN_S, LOADOUT_DROP_PHASE, OBSTACLES,
 } from "./constants.js";
+import { circleHitsObstacle, segmentObstacleT } from "./map.js";
 import { WEAPONS, randomPickupWeapon, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "./weapons.js";
 import { ZoneController } from "./zone.js";
 import { BotBrain, BOT_NAMES } from "./bots.js";
@@ -138,8 +139,9 @@ export class GameRoom extends Room {
   spawnPoint(taken) {
     let best = null;
     let bestDist = -1;
-    for (let i = 0; i < 40 && bestDist < SPAWN_SPACING; i++) {
+    for (let i = 0; i < 60 && bestDist < SPAWN_SPACING; i++) {
       const spot = this.zone.randomPointInside(PLAYER_RADIUS * 4);
+      if (circleHitsObstacle(spot.x, spot.y, PLAYER_RADIUS * 2, OBSTACLES)) continue;
       const d = Math.min(Infinity, ...taken.map((t) => Math.hypot(t.x - spot.x, t.y - spot.y)));
       if (d > bestDist) { best = spot; bestDist = d; }
     }
@@ -211,7 +213,9 @@ export class GameRoom extends Room {
     this.state.pickups.clear();
     for (let i = 0; i < PICKUP_COUNT; i++) {
       const id = randomPickupWeapon();
-      this.dropPickup(id, randomCoord(MAP_WIDTH), randomCoord(MAP_HEIGHT), WEAPONS[id].magSize, WEAPONS[id].reserve);
+      let x, y;
+      do { x = randomCoord(MAP_WIDTH); y = randomCoord(MAP_HEIGHT); } while (circleHitsObstacle(x, y, 24, OBSTACLES));
+      this.dropPickup(id, x, y, WEAPONS[id].magSize, WEAPONS[id].reserve);
     }
     this.zone.start(this.clock.currentTime);
     while (this.state.players.size < BOT_FILL) this.addBot();
@@ -235,10 +239,15 @@ export class GameRoom extends Room {
     this.loadoutsDropped = true;
     this.state.players.forEach((player, id) => {
       if (player.bot || !player.alive) return;
-      const a = Math.random() * Math.PI * 2;
-      const d = 120 + Math.random() * 80;
-      const x = Math.max(PLAYER_RADIUS, Math.min(MAP_WIDTH - PLAYER_RADIUS, player.x + Math.cos(a) * d));
-      const y = Math.max(PLAYER_RADIUS, Math.min(MAP_HEIGHT - PLAYER_RADIUS, player.y + Math.sin(a) * d));
+      // A free spot 120-200 px away, not inside cover (fall back to where the player stands).
+      let x = player.x, y = player.y;
+      for (let i = 0; i < 20; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = 120 + Math.random() * 80;
+        const cx = Math.max(PLAYER_RADIUS, Math.min(MAP_WIDTH - PLAYER_RADIUS, player.x + Math.cos(a) * d));
+        const cy = Math.max(PLAYER_RADIUS, Math.min(MAP_HEIGHT - PLAYER_RADIUS, player.y + Math.sin(a) * d));
+        if (!circleHitsObstacle(cx, cy, 30, OBSTACLES)) { x = cx; y = cy; break; }
+      }
       this.dropPickup(LOADOUT, x, y, 0, 0, id);
     });
     this.broadcast("loadoutDrop");
@@ -311,7 +320,7 @@ export class GameRoom extends Room {
     // Start at the barrel tip so the shooter doesn't hit themselves.
     const x = player.x + Math.cos(angle) * (PLAYER_RADIUS + BULLET_RADIUS + 2);
     const y = player.y + Math.sin(angle) * (PLAYER_RADIUS + BULLET_RADIUS + 2);
-    this.bullets.set(id, { owner, x, y, vx, vy, damage: w.damage, expires: now + w.rangeMs });
+    this.bullets.set(id, { owner, x, y, vx, vy, damage: w.damage, expires: now + w.rangeMs, fromX: player.x, fromY: player.y });
     return { id, x, y, vx, vy, life: w.rangeMs };
   }
 
@@ -445,14 +454,21 @@ export class GameRoom extends Room {
     const dt = deltaMs / 1000;
     const now = this.clock.currentTime;
     for (const [id, b] of this.bullets) {
-      const x0 = b.x, y0 = b.y;
+      // The first step starts from the shooter's centre, so a gun poking through a wall
+      // you're hugging can't fire through it.
+      const x0 = b.fromX ?? b.x, y0 = b.fromY ?? b.y;
+      delete b.fromX;
+      delete b.fromY;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       // Test the whole segment travelled this tick, so fast bullets can't skip past a player.
       const victim = this.findHit(b, x0, y0);
-      if (victim) {
+      const wallT = segmentObstacleT(x0, y0, b.x, b.y, OBSTACLES, BULLET_RADIUS);
+      if (victim && victim.t <= wallT) {
         this.damage(victim.player, victim.id, b.damage, this.state.players.get(b.owner)?.name ?? "?", b.owner);
         this.endBullet(id, b.x, b.y, true);
+      } else if (wallT <= 1) { // stopped by cover
+        this.endBullet(id, x0 + (b.x - x0) * wallT, y0 + (b.y - y0) * wallT, false, true);
       } else if (now >= b.expires || b.x < 0 || b.y < 0 || b.x > MAP_WIDTH || b.y > MAP_HEIGHT) {
         this.endBullet(id, b.x, b.y, false);
       }
@@ -490,9 +506,9 @@ export class GameRoom extends Room {
     this.checkWinner();
   }
 
-  endBullet(id, x, y, hit) {
+  endBullet(id, x, y, hit, wall = false) {
     this.bullets.delete(id);
-    this.broadcast("bulletEnd", { id, x, y, hit });
+    this.broadcast("bulletEnd", { id, x, y, hit, wall });
   }
 }
 

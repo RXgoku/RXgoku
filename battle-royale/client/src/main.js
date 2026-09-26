@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { Client, Callbacks } from "@colyseus/sdk";
 import {
   MAP_WIDTH, MAP_HEIGHT, PLAYER_RADIUS, MAX_INPUT_DT, applyMove,
-  MAX_HEALTH, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE,
+  MAX_HEALTH, PICKUP_RANGE, MIN_PLAYERS, AUTO_START_PLAYERS, END_SCREEN_S, LOADOUT_DROP_PHASE, OBSTACLES,
 } from "../../server/src/constants.js";
 import { WEAPONS, PRIMARY_CHOICES, SECONDARY_CHOICES, LOADOUT } from "../../server/src/weapons.js";
 import { createTextures, bushLayout, gunLength } from "./art.js";
@@ -48,6 +48,9 @@ class GameScene extends Phaser.Scene {
     window.addEventListener("keydown", unlock);
     this.hitSparks = this.add.particles(0, 0, "spark", {
       speed: { min: 60, max: 200 }, lifespan: 280, scale: { start: 1.4, end: 0 }, tint: [0xff3b30, 0xffffff], emitting: false,
+    }).setDepth(6);
+    this.dust = this.add.particles(0, 0, "spark", {
+      speed: { min: 30, max: 90 }, lifespan: 350, scale: { start: 2, end: 0 }, tint: 0xb8a98c, emitting: false,
     }).setDepth(6);
     this.zoneGfx = this.add.graphics().setDepth(3);
     this.minimap = this.add.graphics().setScrollFactor(0).setDepth(10);
@@ -136,7 +139,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.room.onMessage("bullets", (volley) => this.onVolley(volley));
-    this.room.onMessage("bulletEnd", ({ id, x, y, hit }) => this.removeBullet(id, x, y, hit));
+    this.room.onMessage("bulletEnd", ({ id, x, y, hit, wall }) => this.removeBullet(id, x, y, hit, wall));
     this.room.onMessage("kill", ({ killer, victim }) => {
       if (killer === this.me?.state.name) this.sfx.kill();
       if (victim === this.me?.state.name) this.sfx.death();
@@ -284,10 +287,14 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  removeBullet(id, x, y, hit) {
+  removeBullet(id, x, y, hit, wall) {
     const bullet = this.bullets.get(id);
     bullet?.sprite.destroy();
     this.bullets.delete(id);
+    if (wall) {
+      this.dust.explode(6, x, y);
+      this.sfx.impact(x, y);
+    }
     if (hit) {
       this.hitSparks.explode(10, x, y);
       this.sfx.hit(x, y);
@@ -493,6 +500,11 @@ class GameScene extends Phaser.Scene {
     this.minimapClip.clear().fillStyle(0xffffff).fillRect(ox, oy, size, size);
     const g = this.minimap.clear();
     g.fillStyle(0x1e3320, 0.9).fillRect(ox, oy, size, size);
+    g.fillStyle(0x9a978f);
+    for (const o of OBSTACLES) {
+      if (o.type === "rock") g.fillCircle(ox + o.x * sx, oy + o.y * sy, Math.max(1.5, o.r * sx));
+      else g.fillRect(ox + o.x * sx, oy + o.y * sy, Math.max(1.5, o.w * sx), Math.max(1.5, o.h * sy));
+    }
     g.lineStyle(2, 0xff5544).strokeCircle(ox + z.x * sx, oy + z.y * sy, z.radius * sx);
     if (z.nextRadius > 0) g.lineStyle(1, 0xffffff).strokeCircle(ox + z.nextX * sx, oy + z.nextY * sy, z.nextRadius * sx);
     for (const p of this.pickups.values()) {
@@ -554,6 +566,22 @@ class GameScene extends Phaser.Scene {
   drawGround() {
     this.add.tileSprite(0, 0, MAP_WIDTH, MAP_HEIGHT, "grass").setOrigin(0).setDepth(0);
     this.add.graphics().setDepth(0).lineStyle(8, 0x1a2e17).strokeRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+    // Cover from the shared map: walls, containers and rocks (they block movement and bullets).
+    const cover = this.add.graphics().setDepth(1.5);
+    const containerColors = [0xb03a2e, 0x2e6fa7, 0x2f7d4f, 0xd68a1c];
+    OBSTACLES.forEach((o, i) => {
+      if (o.type === "rock") {
+        cover.fillStyle(0x000000, 0.25).fillCircle(o.x + 4, o.y + 5, o.r);
+        cover.fillStyle(0x7d7a74).fillCircle(o.x, o.y, o.r);
+        cover.fillStyle(0x9a978f).fillCircle(o.x - o.r * 0.25, o.y - o.r * 0.3, o.r * 0.55);
+        cover.lineStyle(2, 0x4a4844).strokeCircle(o.x, o.y, o.r);
+      } else {
+        const color = o.kind === "wall" ? 0x8d8a82 : containerColors[i % containerColors.length];
+        cover.fillStyle(0x000000, 0.25).fillRect(o.x + 4, o.y + 5, o.w, o.h);
+        cover.fillStyle(color).fillRect(o.x, o.y, o.w, o.h);
+        cover.lineStyle(2, 0x2a2826).strokeRect(o.x, o.y, o.w, o.h);
+      }
+    });
     this.bushes = bushLayout(MAP_WIDTH, MAP_HEIGHT).map((b) =>
       this.add.image(b.x, b.y, "bush").setScale(b.scale).setAngle(b.angle).setDepth(2.5));
   }

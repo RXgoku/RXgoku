@@ -1,5 +1,7 @@
 // Shared by server and client (client imports this file directly) so
 // movement math is identical on both sides and prediction stays exact.
+import { buildObstacles, resolveCircle } from "./map.js";
+
 export const MAP_WIDTH = 2000;
 export const MAP_HEIGHT = 2000;
 export const PLAYER_SPEED = 250; // px per second
@@ -18,6 +20,9 @@ export const END_SCREEN_S = 10;       // winner screen, then back to the lobby
 // Zone phase at which each player's loadout crate lands (0 = spawn with the full loadout).
 export const LOADOUT_DROP_PHASE = 2;
 
+// Walls, containers and rocks (same seeded layout everywhere; see map.js).
+export const OBSTACLES = buildObstacles(MAP_WIDTH, MAP_HEIGHT);
+
 // Input is either a direction vector {mx, my} (3D client: WASD relative to where you
 // face) or four booleans {up, down, left, right} (2D client and bots). Either way the
 // speed is capped at PLAYER_SPEED.
@@ -35,6 +40,7 @@ export function applyMove(pos, input) {
   const step = PLAYER_SPEED * input.dt * Math.min(len, 1); // never faster than full speed
   pos.x = clamp(pos.x + (dx / len) * step, PLAYER_RADIUS, MAP_WIDTH - PLAYER_RADIUS);
   pos.y = clamp(pos.y + (dy / len) * step, PLAYER_RADIUS, MAP_HEIGHT - PLAYER_RADIUS);
+  resolveCircle(pos, PLAYER_RADIUS, OBSTACLES); // slide along cover instead of walking through it
 }
 
 function clamp(v, min, max) {

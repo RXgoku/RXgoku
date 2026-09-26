@@ -1,7 +1,8 @@
 // The 3D world: sky, lights, ground, bushes, scenery and the zone. Everything is generated
 // in code. Map pixels become world units at SCALE (2000 px map -> 100 x 100 units).
 import * as THREE from "three";
-import { MAP_WIDTH, MAP_HEIGHT } from "../../../server/src/constants.js";
+import { MAP_WIDTH, MAP_HEIGHT, OBSTACLES } from "../../../server/src/constants.js";
+import { circleHitsObstacle } from "../../../server/src/map.js";
 
 export const SCALE = 1 / 20;
 export const W = MAP_WIDTH * SCALE;
@@ -67,6 +68,36 @@ export function createWorld(scene) {
     scene.add(trunk, leaves);
   }
 
+  // Cover: walls, containers and rocks from the shared map. All taller than a soldier,
+  // because they block bullets at every height.
+  const concrete = new THREE.CanvasTexture(noiseCanvas("#8d8a82", "#6f6c66", "#a3a09a"));
+  concrete.colorSpace = THREE.SRGBColorSpace;
+  const wallMat = new THREE.MeshLambertMaterial({ map: concrete });
+  const ribs = new THREE.CanvasTexture(ribCanvas());
+  ribs.colorSpace = THREE.SRGBColorSpace;
+  const containerColors = [0xb03a2e, 0x2e6fa7, 0x2f7d4f, 0xd68a1c];
+  const rockMat = new THREE.MeshLambertMaterial({ color: 0x7d7a74, flatShading: true });
+  const obstacleRand = mulberry32(55);
+  OBSTACLES.forEach((o, i) => {
+    let mesh;
+    if (o.type === "rock") {
+      const r = o.r * SCALE;
+      mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 1), rockMat);
+      const tall = Math.max(1, 2.2 / r); // at least as tall as a soldier
+      mesh.scale.set(1, tall * (0.9 + obstacleRand() * 0.2), 1);
+      mesh.rotation.y = obstacleRand() * Math.PI;
+      mesh.position.set(o.x * SCALE, r * tall * 0.55, o.y * SCALE);
+    } else {
+      const w = o.w * SCALE, d = o.h * SCALE, h = o.kind === "wall" ? 2.6 : 2.7;
+      const material = o.kind === "wall" ? wallMat
+        : new THREE.MeshLambertMaterial({ map: ribs, color: containerColors[i % containerColors.length] });
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      mesh.position.set((o.x + o.w / 2) * SCALE, h / 2, (o.y + o.h / 2) * SCALE);
+    }
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+  });
+
   // Bushes: same seeded layout on every client. Walk-through; they hide whoever is inside.
   const bushRand = mulberry32(1337);
   const bushGeo = new THREE.IcosahedronGeometry(1, 1);
@@ -85,6 +116,7 @@ export function createWorld(scene) {
       blob.castShadow = true;
       bush.add(blob);
     }
+    if (circleHitsObstacle(x / SCALE, z / SCALE, (1.3 * s) / SCALE, OBSTACLES)) continue; // no bushes inside cover
     bush.position.set(x, 0, z);
     scene.add(bush);
     bushes.push({ x, z, radius: 1.3 * s, material });
@@ -146,6 +178,38 @@ function grassCanvas() {
   for (let i = 0; i < 2500; i++) {
     g.fillStyle = rand() < 0.5 ? "#568a45" : "#3f6c33";
     g.fillRect(rand() * size, rand() * size, 1.5, 3 + rand() * 3);
+  }
+  return c;
+}
+
+function noiseCanvas(base, dark, light) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  const rand = mulberry32(11);
+  g.fillStyle = base;
+  g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = rand() < 0.5 ? dark : light;
+    g.globalAlpha = 0.35;
+    g.fillRect(rand() * 128, rand() * 128, 2, 2);
+  }
+  g.globalAlpha = 1;
+  g.fillStyle = dark;
+  g.fillRect(0, 0, 128, 3); // panel seam
+  return c;
+}
+
+// Vertical ribs for shipping containers; tinted per container by the material colour.
+function ribCanvas() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#e6e6e6";
+  g.fillRect(0, 0, 128, 128);
+  for (let x = 0; x < 128; x += 16) {
+    g.fillStyle = "#b5b5b5";
+    g.fillRect(x, 0, 5, 128);
   }
   return c;
 }
