@@ -46,6 +46,7 @@ export class GameRoom extends Room {
         down: !!msg.down,
         left: !!msg.left,
         right: !!msg.right,
+        ...(msg.mx !== undefined || msg.my !== undefined ? { mx: unitClamp(msg.mx), my: unitClamp(msg.my) } : {}),
         dt: Math.min(Math.max(Number(msg.dt) || 0, 0), MAX_INPUT_DT),
       });
     });
@@ -512,6 +513,11 @@ function segmentCircleT(x0, y0, x1, y1, cx, cy, r) {
 
 function randomCoord(size) {
   return PLAYER_RADIUS + Math.random() * (size - PLAYER_RADIUS * 2);
+}
+
+function unitClamp(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0;
 }
 
 function isObject(v) {

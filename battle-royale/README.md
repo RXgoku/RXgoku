@@ -1,12 +1,12 @@
 # Last Circle
 
-**A battle royale that runs in your browser. Drop in, loot a gun, stay ahead of the closing zone, and be the last one standing.**
+**A 3D third-person battle royale that runs in your browser. Drop in, loot a gun, stay ahead of the closing zone, and be the last one standing.**
 
 No download and no account: open the link and play. Bring your friends into the same match, or play alone against bots that fill the lobby.
 
 **▶ Play now: [battle-royale-ri8x.onrender.com](https://battle-royale-ri8x.onrender.com)** *(free hosting: the first visit after a quiet spell can take ~50 s to wake the server)*
 
-![Gameplay: a bot fires tracer rounds at the player while the zone edge closes in](docs/gameplay.png)
+![Third-person gameplay: aiming down sights at bot soldiers across a field of bushes and pine trees](docs/gameplay.png)
 
 ---
 
@@ -15,8 +15,10 @@ No download and no account: open the link and play. Bring your friends into the 
 - **Real-time multiplayer.** The server is authoritative, so a modified browser can't fire faster, reload instantly, or pick up loot from across the map. Your own movement is predicted locally and corrected by the server, so controls feel instant even with lag.
 - **Never an empty lobby.** Server-side bots fill every match up to 10 players. They loot, flee the zone, and fight with human-like reaction time and aim error, and they only engage within about half a screen, so they don't snipe you from off-screen.
 - **A Warzone-style loadout drop.** Pick your guns in the lobby. You start with your sidearm and loot like everyone else, and mid-match a crate only you can open lands next to you with your primary.
-- **Zero asset files.** Every sprite and sound is generated in code when the game starts. The whole game is about 1,850 lines of JavaScript and a 368 KB download (gzipped).
+- **Zero asset files.** Every 3D model, texture and sound is generated in code when the game starts. The whole game is about 2,200 lines of JavaScript and a 192 KB download (gzipped).
 - **Positional audio.** Footsteps and gunshots get louder as they get closer and pan left or right, so you can hear a fight before you see it.
+
+**Prefer the original top-down version?** It's still at [`/2d.html`](https://battle-royale-ri8x.onrender.com/2d.html), and both versions can play in the same match.
 
 ## How a match plays
 
@@ -35,9 +37,11 @@ No download and no account: open the link and play. Bring your friends into the 
 
 | Key | Action |
 |---|---|
-| **W A S D** | Move |
-| **Mouse** | Aim |
+| **Click the game** | Lock the mouse for aiming (**Esc** frees it) |
+| **W A S D** | Move, relative to where you're looking |
+| **Mouse** | Look and aim |
 | **Left click** (hold) | Shoot |
+| **Right click** (hold) | Aim down sights (the sniper zooms further) |
 | **E** | Pick up / swap weapon, open your loadout crate |
 | **R** | Reload |
 | **1 / 2** | Secondary / primary |
@@ -57,7 +61,7 @@ No download and no account: open the link and play. Bring your friends into the 
 
 ```mermaid
 flowchart LR
-  subgraph Browser["Browser (Phaser 3)"]
+  subgraph Browser["Browser (Three.js)"]
     I[Keyboard + mouse] --> P[Predict own movement]
     P --> R[Render + audio]
     S[Server snapshots] --> P
@@ -77,15 +81,16 @@ flowchart LR
 - **Checks the server enforces:** movement can't exceed real elapsed time, and fire rate, magazine, reload state, pickup range, loadout choices, crate ownership and the host-only Start button are all validated.
 - **Prediction and reconciliation.** Your client moves you immediately, and each server update carries the last input it applied. The client snaps to the server's position and replays the inputs the server hasn't processed yet, so your movement stays smooth.
 - **Bullets exist only on the server.** Clients receive "fired" and "ended" events and draw tracers. Hits are checked along the whole path a bullet travelled each tick, so fast sniper rounds can't pass through players.
+- **The 3D world is the same flat map.** The server simulates a flat 2000 × 2000 map, and the 3D client shows it from behind your shoulder. WASD is turned into a direction relative to where you're looking, and the crosshair ray picks your target, but the server still checks speed, fire rate and hits exactly as before. That's also why 3D and 2D players can share a match. It means there's no jumping or shooting up and down.
 - **Bots use the same rules.** Bot AI calls the same shoot, reload and pickup code as human input, so it can't cheat either.
 
 ## Tech stack
 
 | Part | Choice |
 |---|---|
-| Client | [Phaser 3](https://phaser.io) and Vite |
+| Client | [Three.js](https://threejs.org) third-person 3D and Vite (the original top-down version uses [Phaser 3](https://phaser.io)) |
 | Multiplayer | [Colyseus 0.18](https://colyseus.io) (rooms, state sync) on Node.js 22 |
-| Art | Drawn in code at startup (`client/src/art.js`) |
+| Art | 3D models, textures and scenery generated in code (`client/src/3d/models.js`, `world.js`) |
 | Audio | Synthesized with the Web Audio API (`client/src/sfx.js`) |
 | Hosting | One Render web service serves both the game page and the WebSocket server |
 | Built with | [Claude Code](https://claude.ai/code) as an AI pair programmer |
@@ -157,8 +162,11 @@ battle-royale/
 │   ├── constants.js   shared movement code and match settings
 │   └── schema.js      synced state definitions
 ├── client/src/
-│   ├── main.js        game scene: prediction, interpolation, UI
-│   ├── art.js         procedural textures
-│   └── sfx.js         procedural sound effects
+│   ├── 3d/main.js     3D game: prediction, interpolation, camera, aiming, HUD
+│   ├── 3d/models.js   soldiers, guns, crates, name tags
+│   ├── 3d/world.js    sky, lights, ground, bushes, trees, zone wall
+│   ├── sfx.js         procedural sound effects (shared)
+│   ├── main.js        original top-down 2D version (2d.html)
+│   └── art.js         2D textures
 └── docs/              screenshots
 ```

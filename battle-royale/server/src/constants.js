@@ -18,12 +18,21 @@ export const END_SCREEN_S = 10;       // winner screen, then back to the lobby
 // Zone phase at which each player's loadout crate lands (0 = spawn with the full loadout).
 export const LOADOUT_DROP_PHASE = 2;
 
+// Input is either a direction vector {mx, my} (3D client: WASD relative to where you
+// face) or four booleans {up, down, left, right} (2D client and bots). Either way the
+// speed is capped at PLAYER_SPEED.
 export function applyMove(pos, input) {
-  const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-  if (dx === 0 && dy === 0) return;
+  let dx, dy;
+  if (input.mx !== undefined || input.my !== undefined) {
+    dx = input.mx || 0;
+    dy = input.my || 0;
+  } else {
+    dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+  }
   const len = Math.hypot(dx, dy);
-  const step = PLAYER_SPEED * input.dt;
+  if (len === 0) return;
+  const step = PLAYER_SPEED * input.dt * Math.min(len, 1); // never faster than full speed
   pos.x = clamp(pos.x + (dx / len) * step, PLAYER_RADIUS, MAP_WIDTH - PLAYER_RADIUS);
   pos.y = clamp(pos.y + (dy / len) * step, PLAYER_RADIUS, MAP_HEIGHT - PLAYER_RADIUS);
 }
